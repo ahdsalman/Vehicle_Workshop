@@ -3,7 +3,7 @@ from django.contrib.auth.models import BaseUserManager,AbstractBaseUser
 # Create your models here.
 
 class Usermanager(BaseUserManager):
-    def create_user(self,email,username,first_name=None,last_name=None,password=None):
+    def create_user(self,email,username,first_name=None,last_name=None,password=None,is_shopowner=False):
         if not email:
             raise ValueError("User must have email address")
         user= self.model(
@@ -11,9 +11,11 @@ class Usermanager(BaseUserManager):
             first_name=first_name,
             last_name=last_name,
             username=username,
+            is_shopowner = is_shopowner
             
 
         )
+    
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -38,6 +40,7 @@ class User(AbstractBaseUser):
     username=models.CharField(max_length=255)
     location_id=models.IntegerField(null=True,blank=True)
 
+    is_shopowner=models.BooleanField(default=False)
     is_active=models.BooleanField(default=True)
     is_admin=models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now_add=True)

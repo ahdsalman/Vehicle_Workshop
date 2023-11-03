@@ -7,6 +7,8 @@ urlpatterns = [
     path('phone/',PhoneVarify.as_view(),name='phone'),
     path('otp/',Otpverification.as_view(),name='otp'),
     path('userlogin/',UserLoginView.as_view(),name='login'),
+    path('changepassword/',ChangeUserPassword.as_view(),name='changepassword'),
+    path('forgotpassword/',ForgotPassword.as_view(),name='forgotpassword'),
     
 ]
 

@@ -45,4 +45,11 @@ class UserLoginSerializer(serializers.ModelSerializer):
         model= User
         fields=['email','password']
 
-   
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password=serializers.CharField()
+    new_password=serializers.CharField(max_length=100,required=True)
+    confirm_password=serializers.CharField(max_length=100,required=True)
+    
+class ForgotpasswordSerializer(serializers.Serializer):
+    update_password=serializers.CharField(max_length=100)
+    sure_password=serializers.CharField(max_length=100)

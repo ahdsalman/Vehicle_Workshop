@@ -9,6 +9,9 @@ from rest_framework import status
 from userapp.auths.utils import send_sms,verify_user_code
 from userapp.auths.tokens import get_tokens_for_user
 from django.contrib.auth import authenticate
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
+
 
 # Create your views here.
 
@@ -85,5 +88,51 @@ class UserLoginView(APIView):
             else:
                 return Response({'Msg':'Email or Password is not valid'},status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+class ChangeUserPassword(APIView):
+    permission_classes = [IsAuthenticated]
+    def patch(self, request):
+        serializer=ChangePasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            user=request.user
+            old_password=serializer.validated_data.get('old_password')
+            new_password=serializer.validated_data.get('new_password')
+            confirm_password=serializer.validated_data.get('confirm_password')
+            
+            if user.check_password(old_password):
+
+                if new_password==confirm_password:
+                    user.set_password(new_password)
+                    user.save()
+
+                    return Response({'Msg':'Password changed'},status=status.HTTP_200_OK)
+                return Response({'Msg':'New password and Confirm Password are not match'})
+            return Response({'Msg':'Invalid Old password'},status=status.HTTP_404_NOT_FOUND)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class ForgotPassword(APIView):
+    def patch(self, request):
+        
+        email=request.data.get('email')
+        serializer=ForgotpasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            update_password=serializer.validated_data.get('update_password')
+            sure_password=serializer.validated_data.get('sure_password')
+            if update_password==sure_password:
+                try:
+                    user=User.objects.get(email=email)
+                    user.set_password(update_password)
+                    user.save()
+                    return Response({'Password updated'},status=status.HTTP_200_OK)
+                except User.DoesNotExist:
+                    return Response({'Please check your Email'},status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'Msg':'Update Password and Sure Password are not match'})
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+                    
                     
 
