@@ -9,6 +9,10 @@ urlpatterns = [
     path('userlogin/',UserLoginView.as_view(),name='login'),
     path('changepassword/',ChangeUserPassword.as_view(),name='changepassword'),
     path('forgotpassword/',ForgotPassword.as_view(),name='forgotpassword'),
+
+    # resend otp
+    # google auth
+    # location
     
 ]
 

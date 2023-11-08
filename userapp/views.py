@@ -11,12 +11,15 @@ from userapp.auths.tokens import get_tokens_for_user
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
-
+from drf_spectacular.utils import extend_schema
 
 # Create your views here.
 
 
+
 class UserRegisterView(APIView):
+    serializer_class=UserRegisterSerializer
+    @extend_schema(responses=UserRegisterSerializer)
     def post(self,request):
 
         serializer=UserRegisterSerializer(data=request.data)
@@ -36,6 +39,8 @@ class UserRegisterView(APIView):
 
 
 class PhoneVarify(APIView):
+    serializer_class=PhoneSerializer
+    @extend_schema(responses=PhoneSerializer)
     def post(self,request):
         
         serializer=PhoneSerializer(data=request.data)
@@ -52,6 +57,8 @@ class PhoneVarify(APIView):
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 class Otpverification(APIView):
+    serializer_class=OtpSerializer
+    @extend_schema(responses=OtpSerializer)
     def post(self,request):
 
         serializer=OtpSerializer(data=request.data)
@@ -72,6 +79,8 @@ class Otpverification(APIView):
         return Response(serializer.errors)
 
 class UserLoginView(APIView):
+    serializer_class=UserLoginSerializer
+    @extend_schema(responses=UserLoginSerializer)
     def post(self, request):
 
         serializer=UserLoginSerializer(data=request.data)
@@ -93,6 +102,10 @@ class UserLoginView(APIView):
 
 class ChangeUserPassword(APIView):
     permission_classes = [IsAuthenticated]
+
+    serializer_class=ChangePasswordSerializer
+    @extend_schema(responses=ChangePasswordSerializer)
+
     def patch(self, request):
         serializer=ChangePasswordSerializer(data=request.data)
         if serializer.is_valid():
@@ -115,6 +128,8 @@ class ChangeUserPassword(APIView):
 
 
 class ForgotPassword(APIView):
+    serializer_class=ForgotpasswordSerializer
+    @extend_schema(responses=ForgotpasswordSerializer)
     def patch(self, request):
         
         email=request.data.get('email')

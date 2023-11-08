@@ -42,8 +42,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # External packages
     'rest_framework',
     'rest_framework_simplejwt',
+    'drf_spectacular',
+    # Internal Apps
     'userapp',
     'shopapp',
 ]
@@ -154,8 +157,19 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     # Other settings...
+    'DEFAULT_SCHEMA_CLASS':'drf_spectacular.openapi.AutoSchema',
 }
 
+SPECTACULAR_SETTINGS = {'TITLE':'Backend Projrct',
+                        "SERVE_INCLUDE_SCHEMA":False,
+                        "SECURITY_DEFINITIONS": {
+            "Bearer Token": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    },
+}
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),

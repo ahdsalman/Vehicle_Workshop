@@ -9,6 +9,10 @@ urlpatterns = [
     path('shopregister/',WorkshopOwnerRegister.as_view(),name='shopregister'),
     path('emailverify/',EmailVerify.as_view(),name='emailverify'),
     path('otpverify/',EmailOtpVerify.as_view(),name='otpverify'),
-    # path('shoplogin/',WorkshopOwnerLogin.as_view(),name='shoplogin'),
+    path('updatepassword/',UpdateOwnerPassword.as_view(),name='updatepassword'),
+    path('resetpassword/',ResetOwnerpassword.as_view(),name='resetpassword'),
+    path('shoplogin/',WorkshopOwnerLogin.as_view(),name='shoplogin'),
+
+    
     
 ]
