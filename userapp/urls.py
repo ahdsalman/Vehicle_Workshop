@@ -9,17 +9,10 @@ urlpatterns = [
     path('userlogin/',UserLoginView.as_view(),name='login'),
     path('changepassword/',ChangeUserPassword.as_view(),name='changepassword'),
     path('forgotpassword/',ForgotPassword.as_view(),name='forgotpassword'),
+    path('google/',GoogleSocialAuth.as_view(),name='social_auth'),
 
     # resend otp
     # google auth
     # location
     
 ]
-
-
-# urlpatterns = [
-#     path('gettoken/',TokenObtainPairView.as_view(),name='token_obtain'),
-#     path('refreshtoken/',TokenRefreshView.as_view(),name='token_refresh'),
-#     path('varifytoken/',TokenVerifyView.as_view(),name='token_varify'),
-    
-# ]

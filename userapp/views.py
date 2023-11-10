@@ -42,19 +42,38 @@ class PhoneVarify(APIView):
     serializer_class=PhoneSerializer
     @extend_schema(responses=PhoneSerializer)
     def post(self,request):
+
+        if request.method == 'POST':
+            serializer=PhoneSerializer(data=request.data)
+            if serializer.is_valid():
+                phone=serializer.validated_data.get('phone')
+                try:
+                    verification_sid=send_sms(phone)
+                    request.session['verification_sid']=verification_sid
+                    request.session['phone']=phone
+                    return Response({'id':verification_sid},status=status.HTTP_200_OK)
+                except Exception as e:
+                    print(e)
+                    return Response({'msg':'cant send otp...!'},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
         
-        serializer=PhoneSerializer(data=request.data)
-        if serializer.is_valid():
-            phone=serializer.validated_data.get('phone')
-            try:
-                verification_sid=send_sms(phone)
-                request.session['verification_sid']=verification_sid
-                return Response({'id':verification_sid},status=status.HTTP_200_OK)
-            except Exception as e:
-                print(e)
-                return Response({'msg':'cant send otp...!'},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    def get(self, request):
             
-        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+            previous_phone=request.session.get('phone')
+            if previous_phone:
+                try:
+                    verification_sid=send_sms(previous_phone)
+                    
+                    verification_sid = request.session.get('verification_sid')
+                    return Response({'id':verification_sid},status=status.HTTP_200_OK)
+                except Exception as e:
+                    print(e)
+                    return Response({'Msg':'Can\t send OTP...!'},status= status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            return Response({'Msg':'Previous OTP request not found,Please submit a new request'},status=status.HTTP_404_NOT_FOUND)
+                
+
 
 class Otpverification(APIView):
     serializer_class=OtpSerializer
@@ -148,6 +167,16 @@ class ForgotPassword(APIView):
             else:
                 return Response({'Msg':'Update Password and Sure Password are not match'})
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    
+class GoogleSocialAuth(APIView):
+    def post(self, request):
+
+        serializer=GoogleSocialAuthSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data=(serializer.validated_data)['auth_token']
+        return Response(data, status=status.HTTP_200_OK)
+
+
                     
                     
 

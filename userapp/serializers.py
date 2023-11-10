@@ -1,5 +1,8 @@
 from rest_framework import serializers
 from userapp.models import *
+from userapp import google
+from rest_framework.exceptions import AuthenticationFailed
+from userapp.register import register_social_user
 
 
 
@@ -26,6 +29,35 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Password didn\'t match')
         return valid
     
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class GoogleSocialAuthSerializer(serializers.Serializer):
+    auth_token = serializers.CharField()
+
+    def validate_auth_token(self, auth_token):
+        user_data = google.Google.validate(auth_token)
+        try:
+            user_data['sub']
+        except:
+            raise serializers.ValidationError(
+                'The token is invalid or expired. Please login again.'
+            )
+        if user_data['aud'] != os.getenv('GOOGLE_CLIENT_ID'):
+            raise AuthenticationFailed('oops, Who are you ?')
+        
+        user_id = user_data['sub']
+        email = user_data['email']
+        name = user_data['name']
+        
+
+        return register_social_user(
+             user_id=user_id, email=email, name=name)
+        
+
+
 
 
 class PhoneSerializer(serializers.Serializer):
