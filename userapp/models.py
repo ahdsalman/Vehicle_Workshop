@@ -1,4 +1,4 @@
-from django.db import models
+from django.contrib.gis.db import models
 from django.contrib.auth.models import BaseUserManager,AbstractBaseUser
 # Create your models here.
 
@@ -37,8 +37,8 @@ class User(AbstractBaseUser):
     email=models.EmailField(verbose_name="email address",max_length=255,unique=True)
     first_name=models.CharField(max_length=255,null=True,blank=True)
     last_name=models.CharField(max_length=255,null=True,blank=True)
-    username=models.CharField(max_length=255)
-    location_id=models.IntegerField(null=True,blank=True)
+    username=models.CharField(max_length=255,unique=True,null=True,blank=True)
+    
 
     is_shopowner=models.BooleanField(default=False)
     is_active=models.BooleanField(default=True)
@@ -70,3 +70,20 @@ class User(AbstractBaseUser):
         "Is the user a member of staff?"
         # Simplest possible answer: All admins are staff
         return self.is_admin
+    
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE,related_name='profile')
+    phone = models.CharField(max_length=13,unique=True,null=True)
+    city = models.CharField(max_length=100,null=True)
+    pincode = models.IntegerField(null=True)
+    usr_location =models.PointField(geography=True,null=True, blank=True)
+    # def __str__(self):
+    #     return self.phone
+
+
+
+
+
+
+

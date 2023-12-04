@@ -50,6 +50,7 @@ class PhoneVarify(APIView):
                 try:
                     verification_sid=send_sms(phone)
                     request.session['verification_sid']=verification_sid
+                    print(f'verification_sid: {verification_sid}, phone: {phone}')
                     request.session['phone']=phone
                     return Response({'id':verification_sid},status=status.HTTP_200_OK)
                 except Exception as e:
@@ -57,7 +58,8 @@ class PhoneVarify(APIView):
                     return Response({'msg':'cant send otp...!'},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-        
+    serializer_class=PhoneSerializer
+    @extend_schema(responses=PhoneSerializer)
     def get(self, request):
             
             previous_phone=request.session.get('phone')
@@ -83,10 +85,11 @@ class Otpverification(APIView):
         serializer=OtpSerializer(data=request.data)
         if serializer.is_valid():
             otp=serializer.validated_data.get('otp')
+            print(otp)
             verification_sid = request.session.get('verification_sid')
 
             verification_check=verify_user_code(verification_sid,otp)
-            
+            print(verification_sid,otp)
             if verification_check.status =='approved':
                 data={
                     'msg':'Registeration successful'
@@ -120,11 +123,10 @@ class UserLoginView(APIView):
 
 
 class ChangeUserPassword(APIView):
-    permission_classes = [IsAuthenticated]
 
+    permission_classes = [IsAuthenticated]
     serializer_class=ChangePasswordSerializer
     @extend_schema(responses=ChangePasswordSerializer)
-
     def patch(self, request):
         serializer=ChangePasswordSerializer(data=request.data)
         if serializer.is_valid():
@@ -168,13 +170,50 @@ class ForgotPassword(APIView):
                 return Response({'Msg':'Update Password and Sure Password are not match'})
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     
+    
 class GoogleSocialAuth(APIView):
+    serializer_class=GoogleSocialAuthSerializer
+    @extend_schema(responses=GoogleSocialAuthSerializer)
     def post(self, request):
 
         serializer=GoogleSocialAuthSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data=(serializer.validated_data)['auth_token']
         return Response(data, status=status.HTTP_200_OK)
+
+
+
+class UserProfile(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class=UserProfileSerializer
+    @extend_schema(responses=UserProfileSerializer)
+    def get(self,request):
+        try:
+
+            serializer = UserProfileSerializer(request.user)
+            return Response(serializer.data,status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({'User Not Found'},status=status.HTTP_404_NOT_FOUND)
+    
+    serializer_class=UserProfileSerializer
+    @extend_schema(responses=UserProfileSerializer)
+    def put(self, request):
+        user = request.user
+
+        serializer = UserProfileSerializer(user,data=request.data,partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data,status=status.HTTP_200_OK)
+        return Response(serializer.errors)
+
+
+            
+
+
+
+            
+            
+        
 
 
                     

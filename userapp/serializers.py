@@ -85,3 +85,41 @@ class ChangePasswordSerializer(serializers.Serializer):
 class ForgotpasswordSerializer(serializers.Serializer):
     update_password=serializers.CharField(max_length=100)
     sure_password=serializers.CharField(max_length=100)
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    
+
+    class Meta:
+        model = Profile
+        fields = ['phone', 'city', 'pincode','usr_location']
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    profile = ProfileSerializer(required=False)
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'username', 'profile']
+
+    def update(self, instance, validated_data):
+        instance.first_name = validated_data.get("first_name", instance.first_name)
+        instance.last_name = validated_data.get("last_name", instance.last_name)
+        instance.username = validated_data.get("username", instance.username)
+        
+        
+        instance.save()
+        
+        profile_data = validated_data.pop('profile', [])
+        if profile_data:
+            # Get or create the profile instance
+            profile_instance, created = Profile.objects.get_or_create(user=instance)
+            
+            # Update the profile fields
+            for attr, value in profile_data.items():
+                setattr(profile_instance, attr, value)
+            
+            profile_instance.save()
+
+        return instance
+

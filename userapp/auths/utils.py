@@ -15,7 +15,8 @@ def send_sms(phone_number):
                         .create(to=phone_number, channel='sms')
         print(verification.sid)
         return verification.sid
-    except:
+    except TwilioRestException as e:
+        print(e)
         return 
        
 

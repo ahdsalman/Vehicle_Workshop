@@ -9,11 +9,12 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+from osgeo import gdal
 from pathlib import Path
 from datetime import timedelta
 import os
 from dotenv import load_dotenv
+
 
 load_dotenv()
 
@@ -46,9 +47,13 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'drf_spectacular',
+    "rest_framework_gis",
+    "django.contrib.gis",
     # Internal Apps
     'userapp',
     'shopapp',
+    'userside',
+    'shopdetails',
 ]
 
 MIDDLEWARE = [
@@ -87,12 +92,12 @@ WSGI_APPLICATION = 'workshops.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'workshop',
+        'ENGINE': "django.contrib.gis.db.backends.postgis",
+        'NAME': 'workshopin',
         'USER':'postgres',
         'PASSWORD':os.getenv('Database_PASSWORD'),
         'HOST':'localhost',
-        'PORT':5433
+        'PORT':5434
     }
 }
 
@@ -154,6 +159,7 @@ EMAIL_USE_TLS = True
 
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+
 
 
 REST_FRAMEWORK = {

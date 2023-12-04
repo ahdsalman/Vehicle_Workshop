@@ -9,7 +9,8 @@ urlpatterns = [
     path('userlogin/',UserLoginView.as_view(),name='login'),
     path('changepassword/',ChangeUserPassword.as_view(),name='changepassword'),
     path('forgotpassword/',ForgotPassword.as_view(),name='forgotpassword'),
-    path('google/',GoogleSocialAuth.as_view(),name='social_auth'),
+    path('google/',GoogleSocialAuth.as_view(),name='socialauth'),
+    path('profile/',UserProfile.as_view(),name='profile'),
 
     # resend otp
     # google auth
