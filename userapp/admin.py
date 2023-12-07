@@ -21,7 +21,7 @@ admin.site.register(Category,userAdmin)
 
 @admin.register(Profile)
 class Profile(OSMGeoAdmin):
-    list_display =['id','user','usr_location']
+    list_display =['id','user']
 
 class userAdmin(admin.ModelAdmin):
     list_display =('id','service')

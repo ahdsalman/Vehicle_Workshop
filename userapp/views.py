@@ -12,12 +12,13 @@ from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
 from drf_spectacular.utils import extend_schema
-
+from rest_framework.decorators import permission_classes
+from userapp.custompermission import OnlyUserPermission
 # Create your views here.
 
 
 
-class UserRegisterView(APIView):
+class UserRegisterCreateView(APIView):
     serializer_class=UserRegisterSerializer
     @extend_schema(responses=UserRegisterSerializer)
     def post(self,request):
@@ -38,7 +39,7 @@ class UserRegisterView(APIView):
     
 
 
-class PhoneVarify(APIView):
+class PhoneVarifyView(APIView):
     serializer_class=PhoneSerializer
     @extend_schema(responses=PhoneSerializer)
     def post(self,request):
@@ -77,7 +78,7 @@ class PhoneVarify(APIView):
                 
 
 
-class Otpverification(APIView):
+class OtpverificationView(APIView):
     serializer_class=OtpSerializer
     @extend_schema(responses=OtpSerializer)
     def post(self,request):
@@ -122,9 +123,9 @@ class UserLoginView(APIView):
     
 
 
-class ChangeUserPassword(APIView):
+class ChangeUserPasswordView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,OnlyUserPermission]
     serializer_class=ChangePasswordSerializer
     @extend_schema(responses=ChangePasswordSerializer)
     def patch(self, request):
@@ -148,7 +149,7 @@ class ChangeUserPassword(APIView):
 
 
 
-class ForgotPassword(APIView):
+class ForgotPasswordView(APIView):
     serializer_class=ForgotpasswordSerializer
     @extend_schema(responses=ForgotpasswordSerializer)
     def patch(self, request):
@@ -171,7 +172,7 @@ class ForgotPassword(APIView):
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     
     
-class GoogleSocialAuth(APIView):
+class GoogleSocialAuthUserView(APIView):
     serializer_class=GoogleSocialAuthSerializer
     @extend_schema(responses=GoogleSocialAuthSerializer)
     def post(self, request):
@@ -180,17 +181,17 @@ class GoogleSocialAuth(APIView):
         serializer.is_valid(raise_exception=True)
         data=(serializer.validated_data)['auth_token']
         return Response(data, status=status.HTTP_200_OK)
+ 
 
 
-
-class UserProfile(APIView):
-    permission_classes = [IsAuthenticated]
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated,OnlyUserPermission]
     serializer_class=UserProfileSerializer
     @extend_schema(responses=UserProfileSerializer)
     def get(self,request):
         try:
-
-            serializer = UserProfileSerializer(request.user)
+            user=User.objects.get(email=request.user.email)
+            serializer = UserProfileSerializer(user)
             return Response(serializer.data,status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({'User Not Found'},status=status.HTTP_404_NOT_FOUND)
@@ -205,7 +206,12 @@ class UserProfile(APIView):
             serializer.save()
             return Response(serializer.data,status=status.HTTP_200_OK)
         return Response(serializer.errors)
-
+    
+    
+    def delete(self,request):
+        user = request.user
+        user.delete()
+        return Response({'Msg':'Your profile and accound was deleted'})
 
             
 

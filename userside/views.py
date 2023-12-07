@@ -1,6 +1,6 @@
 
 from shopdetails.models import Workshopdetails,Category,Services
-from userapp.models import User
+from userapp.models import User,Profile
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -18,40 +18,42 @@ from userapp.auths.smtp import verify_mail
 from drf_spectacular.utils import extend_schema
 
 
-class CurrentLocation(APIView):
-    def get(self, request):
-        client_ip, is_routable = get_client_ip(request)
-        print(client_ip,'clintttttttt')
-        if client_ip is None:
-            client_ip = "0.0.0.0"
-        else:
-            if is_routable:
-                ip_type = "public"
-            else:
-                ip_type = "private"
-        print(ip_type, client_ip)
-        auth = os.getenv('IP_AUTH')
-        print(auth)
-        ip_address = "103.70.197.189"  # for checking
-        url = f"https://api.ipfind.com?ip={ip_address}&auth={auth}"
-        response = urllib.request.urlopen(url)
-        print(response,'lllllllll')
-        data = json.loads(response.read())
-        data["client_ip"] = client_ip
-        data["ip_type"] = ip_type
-        point = Point(data["longitude"], data["latitude"])
-        if not Location.objects.filter(coordinates=point).exists():
-            Location.objects.create(
-                country=data["country"],
-                state=data["region"],
-                district=data["county"],
-                place=data["city"],
-                coordinates=point,
-            )
-        return Response(data["county"], status=status.HTTP_200_OK)
+# class UserCurrentLocation(APIView):
+#     permission_classes = [IsAuthenticated]
+#     def get(self, request):
+#         client_ip, is_routable = get_client_ip(request)
+#         print(client_ip,'clintttttttt')
+#         if client_ip is None:
+#             client_ip = "0.0.0.0"
+#         else:
+#             if is_routable:
+#                 ip_type = "public"
+#             else:
+#                 ip_type = "private"
+#         print(ip_type, client_ip)
+#         auth = os.getenv('IP_AUTH')
+#         print(auth)
+#         ip_address = "103.70.197.189"  # for checking
+#         url = f"https://api.ipfind.com?ip={ip_address}&auth={auth}"
+#         response = urllib.request.urlopen(url)
+#         print(response,'lllllllll')
+#         data = json.loads(response.read())
+#         data["client_ip"] = client_ip
+#         data["ip_type"] = ip_type
+#         point = Point(data["longitude"], data["latitude"])
+#         if not Profile.objects.filter(usr_location=point).exists():
+#             Profile.objects.create(
+#                 country=data["country"],
+#                 state=data["region"],
+#                 district=data["county"],
+#                 city=data["city"],
+#                 place=data["place"],
+#                 coordinates=point,
+#             )
+#         return Response(data["county"], status=status.HTTP_200_OK)
 
 
-class Shopsearch(APIView):
+class ShopsearchRetriveRequestView(APIView):
     permission_classes=[IsAuthenticatedOrReadOnly]
     serializer_class=ShopShowSerializer
     extend_schema(responses=ShopShowSerializer)
@@ -62,9 +64,9 @@ class Shopsearch(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
         
         search =( Q(state__icontains=q)| Q(district__icontains=q)| Q(city__icontains=q)| Q(place__icontains=q) |
-                 Q(category__category__icontains=q)|Q(service__service__icontains=q))
+                 Q(category__category__icontains=q)|Q(service__service__icontains=q)|Q(shopname__iexact=q))
 
-        search_shop=Workshopdetails.objects.filter(search)
+        search_shop=Workshopdetails.objects.filter(search).distinct()
         if search_shop:
             serializer = ShopShowSerializer(search_shop,many=True)
             return Response(serializer.data,status=status.HTTP_200_OK)
@@ -107,7 +109,7 @@ class Shopsearch(APIView):
             
 
 
-class ShopShow(APIView):
+class ShopsRetriveView(APIView):
     permission_classes=[IsAuthenticated]
     serializer_class = ShopShowSerializer
     @extend_schema(responses=ShopShowSerializer)
@@ -137,15 +139,6 @@ class ShopShow(APIView):
 
 
 
-# class ShopSearching(APIView):
-#     def get(self, request):
-        
-#         search=request.GET.get("q")
-#         if search is None or len(search.strip())==0:
-#             return Response(status=status.HTTP_400_BAD_REQUEST)
-        
-#         check = Q(service__icontain=search)
-#         check_service=Workshopdetails.objects.filter(check)
-#         if check_service:
-#             # serializer=
+
+
         

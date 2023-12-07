@@ -92,7 +92,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ['phone', 'city', 'pincode','usr_location']
+        fields = ['phone', 'city', 'pincode']
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

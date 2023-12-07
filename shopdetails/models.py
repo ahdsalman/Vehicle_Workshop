@@ -26,6 +26,7 @@ class Workshopdetails(models.Model):
     branch = models.CharField(max_length=100,null=True,blank=True)
     category = models.ForeignKey(Category,on_delete=models.CASCADE,null=True)
     service = models.ManyToManyField(Services,blank=True,related_name='services')
+    id_proof = models.FileField(null=True,blank=True,upload_to='id_proof')
     # location = models.ForeignKey(Location,on_delete=models.CASCADE,null=True,blank=True)
     is_approved = models.BooleanField(default=False,null=True, blank=True)
     

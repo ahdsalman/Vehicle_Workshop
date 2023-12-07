@@ -16,9 +16,10 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema
+from userapp.custompermission import OnlyOwnerPermission
 # Create your views here.
 
-class WorkshopOwnerRegister(APIView):
+class WorkshopOwnerCreateView(APIView):
     serializer_class=ShopRegisterSerializer
     @extend_schema(responses=ShopRegisterSerializer)
 
@@ -43,7 +44,7 @@ class WorkshopOwnerRegister(APIView):
     
 
 
-class EmailVerify(APIView):
+class EmailVerifyView(APIView):
     serializer_class=EmailVerifySerializer
     @extend_schema(responses=EmailVerifySerializer)
     def post(self, request):
@@ -64,7 +65,8 @@ class EmailVerify(APIView):
                 verify_mail(subject, message, sender, recipient_list)
 
                 response_data={
-                    'email':email,  
+                    'email':email, 
+                    'otp':otp 
                 }
                 return Response(response_data, status=status.HTTP_200_OK)
             except User.DoesNotExist:
@@ -72,7 +74,7 @@ class EmailVerify(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class EmailOtpVerify(APIView):
+class EmailOtpVerifyView(APIView):
     serializer_class=OtpVerifySerializer
     @extend_schema(responses=OtpVerifySerializer)
     def post(self, request):
@@ -100,7 +102,7 @@ class EmailOtpVerify(APIView):
 
    
     
-class GoogleSocialAuthOwner(APIView):
+class GoogleSocialAuthOwnerView(APIView):
     serializer_class=GoogleSocialAuthSerializer
     @extend_schema(responses=GoogleSocialAuthSerializer)
     def post(self, request):
@@ -112,8 +114,8 @@ class GoogleSocialAuthOwner(APIView):
 
 
 
-class OwnerProfile(APIView):
-    permission_classes = [IsAuthenticated]
+class OwnerProfileView(APIView):
+    permission_classes = [IsAuthenticated,OnlyOwnerPermission]
     serializer_class = OwnerProfileSerializer
 
     @extend_schema(responses=OwnerProfileSerializer)
@@ -121,7 +123,6 @@ class OwnerProfile(APIView):
         try:
             shop_owner = User.objects.get(email=request.user.email)
             serializer = OwnerProfileSerializer(shop_owner)
-            print(serializer,'shoooo')
             return Response(serializer.data, status=status.HTTP_200_OK)
             
         except User.DoesNotExist:
@@ -143,8 +144,12 @@ class OwnerProfile(APIView):
         except User.DoesNotExist:
             return Response({'User Not Found'}, status=status.HTTP_404_NOT_FOUND)
             
-
-
+    def delete(self, request):
+        owner=request.user
+        owner.delete()
+        return Response({'Msg':'Your account was deleted'},status=status.HTTP_200_OK)
+    
+    
 
 
 

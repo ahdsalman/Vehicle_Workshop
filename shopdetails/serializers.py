@@ -16,6 +16,7 @@ class ServiceSerializer(serializers.ModelSerializer):
 
 
 class ShopDetailSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Workshopdetails
         fields = [
@@ -25,6 +26,7 @@ class ShopDetailSerializer(serializers.ModelSerializer):
             'branch',
             'category',
             'service',
+            'id_proof',
             'country',
             'state',
             'district',
@@ -39,6 +41,7 @@ class ShopDetailSerializer(serializers.ModelSerializer):
         instance.city = validated_data.get('city', instance.city)
         instance.phone = validated_data.get('phone', instance.phone)
         instance.branch = validated_data.get('branch', instance.branch)
+        instance.id_proof = validated_data.get('id_proof', instance.id_proof)
         instance.country = validated_data.get('country', instance.country)
         instance.state = validated_data.get('state', instance.state)
         instance.district = validated_data.get('district', instance.district)
