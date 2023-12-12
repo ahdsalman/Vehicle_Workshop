@@ -12,7 +12,9 @@ class LocationListSerializer(serializers.ModelSerializer):
             "country",
             "state",
             "district",
+            "city",
             "place", 
+            "coordinates"
         )
 
 

@@ -3,7 +3,7 @@ from userapp.models import User
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from shopapp.serializer import *
-from userapp.serializers import GoogleSocialAuthSerializer
+from userapp.serializers import GoogleSocialAuthSerializer,UserProfileSerializer
 from rest_framework import status
 from userapp.auths.smtp import verify_mail
 from userapp.auths.tokens import get_tokens_for_user
@@ -116,25 +116,25 @@ class GoogleSocialAuthOwnerView(APIView):
 
 class OwnerProfileView(APIView):
     permission_classes = [IsAuthenticated,OnlyOwnerPermission]
-    serializer_class = OwnerProfileSerializer
+    serializer_class = UserProfileSerializer
 
-    @extend_schema(responses=OwnerProfileSerializer)
+    @extend_schema(responses=UserProfileSerializer)
     def get(self, request):
         try:
             shop_owner = User.objects.get(email=request.user.email)
-            serializer = OwnerProfileSerializer(shop_owner)
+            serializer = UserProfileSerializer(shop_owner)
             return Response(serializer.data, status=status.HTTP_200_OK)
             
         except User.DoesNotExist:
             return Response({'User Not Found'}, status=status.HTTP_404_NOT_FOUND)
         
-    serializer_class = OwnerProfileSerializer
-    @extend_schema(responses=OwnerProfileSerializer)
+    serializer_class = UserProfileSerializer
+    @extend_schema(responses=UserProfileSerializer)
     def put(self, request):
         try:
             owner = request.user
-            serializer = OwnerProfileSerializer(owner, data=request.data,partial=True)
-            print(serializer)
+            serializer = UserProfileSerializer(owner, data=request.data,partial=True)
+            print(serializer.instance,'aaaaaaaaaaaaa')
             if serializer.is_valid():
                 serializer.save()
                 print(serializer.data)

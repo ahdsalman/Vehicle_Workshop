@@ -4,10 +4,10 @@ from userapp.models import User
 
 
 class Services(models.Model):
-    service = models.CharField(max_length=100)
+    service_name = models.CharField(max_length=100)
     price = models.IntegerField()
     def __str__(self) :
-        return self.service
+        return self.service_name
 
     
 class Category(models.Model):
@@ -25,8 +25,8 @@ class Workshopdetails(models.Model):
     phone = models.CharField(max_length=13,unique=True, null=True)
     branch = models.CharField(max_length=100,null=True,blank=True)
     category = models.ForeignKey(Category,on_delete=models.CASCADE,null=True)
-    service = models.ManyToManyField(Services,blank=True,related_name='services')
-    id_proof = models.FileField(null=True,blank=True,upload_to='id_proof')
+    services = models.ManyToManyField(Services,blank=True,related_name='services')
+    id_proof = models.FileField(upload_to='id_proof',null=True,blank=True)
     # location = models.ForeignKey(Location,on_delete=models.CASCADE,null=True,blank=True)
     is_approved = models.BooleanField(default=False,null=True, blank=True)
     
@@ -37,5 +37,6 @@ class Workshopdetails(models.Model):
     city = models.CharField(max_length=100,null=True,blank=True)
     place = models.CharField(max_length=100, null=True, blank=True)
 
-    
+    # def __str__(self) :
+    #     return self.shopname
     

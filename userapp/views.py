@@ -92,6 +92,7 @@ class OtpverificationView(APIView):
             verification_check=verify_user_code(verification_sid,otp)
             print(verification_sid,otp)
             if verification_check.status =='approved':
+                
                 data={
                     'msg':'Registeration successful'
                 }

@@ -64,7 +64,7 @@ class ShopsearchRetriveRequestView(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
         
         search =( Q(state__icontains=q)| Q(district__icontains=q)| Q(city__icontains=q)| Q(place__icontains=q) |
-                 Q(category__category__icontains=q)|Q(service__service__icontains=q)|Q(shopname__iexact=q))
+                 Q(category__category__icontains=q)|Q(service__service_name__icontains=q)|Q(shopname__iexact=q))
 
         search_shop=Workshopdetails.objects.filter(search).distinct()
         if search_shop:
@@ -140,5 +140,16 @@ class ShopsRetriveView(APIView):
 
 
 
+class UserShopRetriveView(APIView):
+     def get(self, request,pk=None):
+         
+        try:
+             shop=Workshopdetails.objects.get(id=pk)
+             serializer=ShopShowSerializer(shop)
+             return Response(serializer.data,status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'Msg':f'User Not Found {e}'},status=status.HTTP_404_NOT_FOUND)
+         
+         
 
         

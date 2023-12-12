@@ -7,7 +7,7 @@ from shopdetails.models import Category,Services
 
 
 class Location(models.Model):
-    coordinates = models.PointField(srid=4326)
+    coordinates = models.PointField(srid=4326,null=True,blank=True)
     country = models.CharField(max_length=100, null=True, blank=True)
     state = models.CharField(max_length=100, null=True, blank=True)
     district = models.CharField(max_length=100, null=True, blank=True)

@@ -24,12 +24,12 @@ class Profile(OSMGeoAdmin):
     list_display =['id','user']
 
 class userAdmin(admin.ModelAdmin):
-    list_display =('id','service')
+    list_display =('id','service_name')
 admin.site.register(Services,userAdmin)
 
 @admin.register(Location)
 class LocationAdmin(OSMGeoAdmin):
-    list_display = ('city','district','coordinates','country','state')
+    list_display = ('id','city','district','coordinates','country','state')
     
 admin.site.register(RequestShop)
 

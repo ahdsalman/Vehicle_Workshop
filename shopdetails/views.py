@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from shopdetails.serializers import ServiceSerializer,ShopDetailSerializer
+from shopdetails.serializers import ServiceSerializer,ShopDetailSerializer,ShopDetailRetriveSerializer
 from rest_framework.response import Response
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
@@ -16,6 +16,7 @@ import urllib, json
 import os
 from django.conf import settings
 from userapp.auths.smtp import verify_mail
+from userapp.custompermission import OnlyShopPermission,OnlyOwnerPermission
 # Create your views here.
 
 
@@ -74,7 +75,7 @@ class ShopdetailsCreateUpdateView(APIView):
             shop_owner =request.user
             shop=Workshopdetails.objects.filter(shop_owner=shop_owner).first()
             if shop:
-                serializer=ShopDetailSerializer(shop)
+                serializer=ShopDetailRetriveSerializer(shop)
                 return Response(serializer.data,status=status.HTTP_200_OK)
             return Response({'Msg':'Shop Details Not Found'})
         except User.DoesNotExist:
@@ -83,7 +84,8 @@ class ShopdetailsCreateUpdateView(APIView):
     def post(self,request):
 
         owner = request.user
-        serializer = ShopDetailSerializer(owner,data=request.data)
+        serializer = ShopDetailSerializer(data=request.data)
+        print(serializer,'salmanllllll')
         if serializer.is_valid():
             shop= Workshopdetails.objects.create(
                 shop_owner=owner,
@@ -96,19 +98,43 @@ class ShopdetailsCreateUpdateView(APIView):
                 district = serializer.validated_data.get('district'),
                 city = serializer.validated_data.get('city'),
                 place = serializer.validated_data.get('place'),
-            
+                
             )
             category_id = serializer.validated_data.get('category')
-            select_category=Category.objects.get(category=category_id)
-            shop.category=select_category
-            shop.save()
-            services = serializer.validated_data.get('service', []) 
-            service_ids = [service.id for service in services]  
-            shop.service.set(service_ids)
+            print(f"Category ID: {category_id}")
+            try:
+                select_category=Category.objects.get(category=category_id)
+                shop.category=select_category
+                shop.save()
+            except Category.DoesNotExist as e:
+                print(f"Category does not exist or error: {e}")
+                return Response({'error': 'Category does not exist.'}, status=status.HTTP_400_BAD_REQUEST)
+            service_ids = [service.id for service in serializer.validated_data.get('services', [])]
 
-            return Response(serializer.data,status=status.HTTP_200_OK)
+                    
+            existing_services = Services.objects.filter(id__in=service_ids)
+            existing_service_ids = list(existing_services.values_list('id', flat=True))
+            print("Provided Service IDs:", service_ids)
+            print("Existing Service IDs:", existing_service_ids)
+            if set(service_ids) != set(existing_service_ids):
+                
+                return Response({'error': 'One or more services do not exist.'}, status=status.HTTP_400_BAD_REQUEST)
+            shop.services.set(service_ids)
+
+            subject = "New Shop Launched..."
+            message = "Shop created Please check it..."
+            sender = request.user.email
+            recipient_list = (settings.EMAIL_HOST_USER,)
+            verify_mail(subject, message, sender, recipient_list)
+            created_data=serializer.data
+            service_data={
+                'create_data':created_data,
+                'Msg':'Will approve your shop after verify your ID Proof and will add your shop Location coordinates,You Will know this trough email'
+            }
+            return Response(service_data,status=status.HTTP_200_OK)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-        
+    
+
     serializer_class = ShopDetailSerializer
     @extend_schema(responses=ShopDetailSerializer)  
     def put(self,request):
@@ -118,7 +144,7 @@ class ShopdetailsCreateUpdateView(APIView):
         serializer = ShopDetailSerializer(shop,data=request.data,partial=True)
         if serializer.is_valid():
             subject = "Shop New Update..."
-            message = "Shop Updated thire credentials add the location point..."
+            message = "Shop Updated Please check it..."
             sender = request.user.email
             recipient_list = (settings.EMAIL_HOST_USER,)
             verify_mail(subject, message, sender, recipient_list)
@@ -126,11 +152,12 @@ class ShopdetailsCreateUpdateView(APIView):
             data = serializer.data
             updated_data={
                 'data':data,
-                'Msg':"Your data updated, If you don't get the Location point. It will be updated..."
+                'Msg':"Your data updated, If you don't get the Location point. It will be updated...,If you have update your ID Proof will approve after verifying"
             }
             return Response(updated_data,status=status.HTTP_200_OK)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
        
+
     def delete(self,request):
         try:
             shop_owner = request.user
@@ -142,7 +169,7 @@ class ShopdetailsCreateUpdateView(APIView):
 
 
 class AddServicesCreateView(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,OnlyShopPermission,OnlyOwnerPermission]
     serializer_class = ServiceSerializer
     @extend_schema(responses=ServiceSerializer)
     def post(self, request):
@@ -152,7 +179,7 @@ class AddServicesCreateView(APIView):
                 service_data = serializer.validated_data.get('service')
                 price_data = serializer.validated_data.get('price')  # Retrieve the price
 
-                service, created = Services.objects.get_or_create(service=service_data, defaults={'price': price_data})
+                service, created = Services.objects.get_or_create(service_name=service_data, defaults={'price': price_data})
                 if created:
                     return Response({'Msg':'New Service Added'},status=status.HTTP_200_OK)
                 else:

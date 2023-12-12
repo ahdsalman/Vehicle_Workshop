@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'shopapp',
     'userside',
     'shopdetails',
+    'adminpannel',
 ]
 
 MIDDLEWARE = [
