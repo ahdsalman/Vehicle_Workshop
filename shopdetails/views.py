@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from shopdetails.models import *
-from userside.models import Location
-from userside.serializers import LocationListSerializer
+from userside.models import Location,ServiceBooking
+from userside.serializers import LocationListSerializer,ServiceBookingSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -129,7 +129,7 @@ class ShopdetailsCreateUpdateView(APIView):
             created_data=serializer.data
             service_data={
                 'create_data':created_data,
-                'Msg':'Will approve your shop after verify your ID Proof and will add your shop Location coordinates,You Will know this trough email'
+                'Msg':'Will approve your shop after verify your ID Proof and add your shop Location coordinates,You Will know this trough email'
             }
             return Response(service_data,status=status.HTTP_200_OK)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
@@ -176,25 +176,30 @@ class AddServicesCreateView(APIView):
 
         serializer = ServiceSerializer(data=request.data)
         if serializer.is_valid():
-                service_data = serializer.validated_data.get('service')
+                service_data = serializer.validated_data.get('service_name')
                 price_data = serializer.validated_data.get('price')  # Retrieve the price
 
-                service, created = Services.objects.get_or_create(service_name=service_data, defaults={'price': price_data})
+                service, created = Services.objects.get_or_create(service_name=service_data,price=price_data, defaults={'price': price_data})
                 if created:
                     return Response({'Msg':'New Service Added'},status=status.HTTP_200_OK)
                 else:
                     return Response({'Msg':'Service Allready Exist You can Select that when you create your shop details'})
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
-            
 
 
-
-    
-
-
-
-
-
+class ShopServiceBookingRetriveView(APIView):
+     permission_classes=[IsAuthenticated,OnlyShopPermission,OnlyOwnerPermission]
+     def get(self,request):
+        try:
+             shop = request.user.id
+             print(shop,'bookinggggggggggggggg')
+             workshop = Workshopdetails.objects.prefetch_related('servicebooking_set').get(shop_owner=shop)
+             bookings = workshop.servicebooking_set.all()
+             serializer = ServiceBookingSerializer(bookings,many=True)
+             return Response(serializer.data,status=status.HTTP_200_OK)
+        except ServiceBooking.DoesNotExist:
+            return Response({'Msg':'booking data not found'})
+         
 
 

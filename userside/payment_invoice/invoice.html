@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice</title>
+    <!-- Add any necessary styles or scripts -->
+</head>
+<body>
+    <h1>Invoice</h1>
+    <h2>Services</h2>
+    <ul>
+        {% for service in user_service %}
+            <li>{{ service.name }} - {{ service.price }}</li>
+            <!-- Display other relevant service details -->
+        {% endfor %}
+    </ul>
+    <h2>Total Price: {{ total_price }}</h2>
+    <!-- Display other invoice details as needed -->
+</body>
+</html>

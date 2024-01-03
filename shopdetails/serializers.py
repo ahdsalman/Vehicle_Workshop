@@ -8,7 +8,7 @@ from rest_framework.response import Response
 class ServiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Services
-        fields = ['service_name','price']
+        fields = ['id','service_name','price']
 
 
 
@@ -27,6 +27,7 @@ class ShopDetailRetriveSerializer(serializers.ModelSerializer):
             'services',
             'id_proof',
             'is_approved',
+            'is_oppen',
             'country',
             'state',
             'district',
@@ -51,6 +52,7 @@ class ShopDetailSerializer(serializers.ModelSerializer):
             'category',
             'services',
             'id_proof',
+            'is_oppen',
             'country',
             'state',
             'district',
@@ -67,13 +69,30 @@ class ShopDetailSerializer(serializers.ModelSerializer):
         instance.phone = validated_data.get('phone', instance.phone)
         instance.branch = validated_data.get('branch', instance.branch)
         instance.id_proof = validated_data.get('id_proof', instance.id_proof)
+        instance.is_oppen = validated_data.get('is_oppen', instance.is_oppen)
         instance.country = validated_data.get('country', instance.country)
         instance.state = validated_data.get('state', instance.state)
         instance.district = validated_data.get('district', instance.district)
         instance.place= validated_data.get('place', instance.place)
         instance.shop_coordinates = validated_data.get('shop_coordinates', instance.shop_coordinates)
 
-        if instance.id_proof:
+
+
+        update_location = [
+            validated_data.get('country'),
+            validated_data.get('state'),
+            validated_data.get('district'),
+            validated_data.get('city'),
+            validated_data.get('place')
+        ]
+
+        if any(update_location):
+            instance.shop_coordinates = None
+            
+
+
+        id_proof_data = validated_data.get('id_proof')
+        if id_proof_data:
             instance.is_approved=False
         
 

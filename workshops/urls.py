@@ -25,7 +25,7 @@ urlpatterns = [
     path('shopside/', include('shopdetails.urls')),
     path('userside/', include('userside.urls')),
     path('adminpannel/', include('adminpannel.urls')),
-
+    
     path('schema/', SpectacularAPIView.as_view(),name='schema'),
     path('schema/docs/',SpectacularSwaggerView.as_view(url_name='schema')),
     

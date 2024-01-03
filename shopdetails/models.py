@@ -29,6 +29,7 @@ class Workshopdetails(models.Model):
     id_proof = models.FileField(upload_to='id_proof',null=True,blank=True)
     # location = models.ForeignKey(Location,on_delete=models.CASCADE,null=True,blank=True)
     is_approved = models.BooleanField(default=False,null=True, blank=True)
+    is_oppen = models.BooleanField(default=True,null=True,blank=True)
     
     shop_coordinates = models.PointField(geography=True,null=True, blank=True)
     country = models.CharField(max_length=100, null=True, blank=True)

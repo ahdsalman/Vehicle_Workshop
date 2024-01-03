@@ -31,5 +31,15 @@ admin.site.register(Services,userAdmin)
 class LocationAdmin(OSMGeoAdmin):
     list_display = ('id','city','district','coordinates','country','state')
     
-admin.site.register(RequestShop)
+@admin.register(RequestShop)
+class RequestShopAdmin(admin.ModelAdmin):
+    list_display=['id','user']
 
+
+@admin.register(ServiceBooking)
+class ServiceBookingAdmin(OSMGeoAdmin):
+    list_display = ('id','user','city','user_currentlocation')
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display=['id','paid_user','pay_workshop']

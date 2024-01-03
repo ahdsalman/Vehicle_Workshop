@@ -72,7 +72,7 @@ ROOT_URLCONF = 'workshops.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': ['userside/payment_invoice'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -162,6 +162,8 @@ GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
 
 
+STRIPE_ID = os.getenv('STRIPE_ID')
+STRIPE_SECRET = os.getenv('STRIPE_SECRET')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

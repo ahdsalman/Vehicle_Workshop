@@ -11,4 +11,17 @@ urlpatterns = [
     path('shopupdate/<int:pk>/',ShopUpdateAdminView.as_view(),name='shopupdate'),
     path('location/',LocationAdminView.as_view(),name='location'),
     path('locationupdate/<int:pk>/',AddLocationAdminView.as_view(),name='newlocation'),
+    path('adminshopsearch/',ShopsearchView.as_view(),name='search'),
+    path('adminshopretrive/',ShopsAdminRetriveView.as_view(),name='shopretrive'),
+    path('requestedshops/',RequestShopListAdminView.as_view(),name='reuestedshops'),
+    path('requestupdate/<int:pk>/',RequestShopUpdateAdminView.as_view(),name='requestupdate'),
+
+
+    path('adminservices/',SeriveceListAdminView.as_view(),name='adminservices'),
+    path('admincategory/',CategoryAdminView.as_view(),name='admincategory'),
+    path('adminbookinglist/',BookingLIstAdminView.as_view(),name='adminbooking'),
+    path('adminbookingshop/',BookingshopAdminView.as_view(),name='bookingshop'),
+
+
+    
 ]

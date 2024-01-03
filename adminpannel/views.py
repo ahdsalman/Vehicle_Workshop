@@ -1,18 +1,22 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from userapp.models import User
-from userside.models import Location
-from shopdetails.models import Workshopdetails
+from userside.models import Location,RequestShop,ServiceBooking
+from shopdetails.models import Workshopdetails,Services,Category
 from userapp.serializers import UserLoginSerializer,UserProfileSerializer
-from userside.serializers import LocationListSerializer
-from adminpannel.serializers import ShopDetailRetriveAdminSerializer
-from adminpannel.serializers import UserProfileListSerializer
+from userside.serializers import LocationListSerializer,RequestedShopListSerializer
+from adminpannel.serializers import (ShopDetailRetriveAdminSerializer,UserProfileListSerializer,ShopSearchAdminSerializer,ServiceListAdminSerializer,
+                                     CategoryAdminSerializer,BookingAdminSerializer,ShopBookingAdminSerializer)
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate
 from userapp.auths.tokens import get_tokens_for_user
 from django.conf import settings
 from userapp.auths.smtp import verify_mail
+from django.db.models import Q
+from django.contrib.gis.geos import Point
+from django.contrib.gis.measure import Distance
+
 # Create your views here.
 
 
@@ -124,7 +128,8 @@ class ShopUpdateAdminView(APIView):
                 verify_mail(subject, message, sender, recipient_list)
                 serializer.save()
             
-            return Response(serializer.data)
+                return Response(serializer.data)
+            return Response(serializer.errors)
         except Exception as e :
             return Response({'Msg':f'Shop Not Found {e}'})
         
@@ -179,12 +184,166 @@ class AddLocationAdminView(APIView):
     def put(self,request,pk=None):
         
         loc = Location.objects.get(id=pk)
-        serializer = LocationListSerializer(loc,data=request.data)
+        print(loc)
+        serializer = LocationListSerializer(loc,data=request.data,partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data,status=status.HTTP_200_OK)
         return Response(serializer.data,status=status.HTTP_200_OK)
+    
+    def delete(self,request,pk=None):
+        try:
+            location = Location.objects.get(id=pk)
+            location.delete()
+            return Response({'Msg':'Location deleted'})
+        except Exception as e:
+            return Response({'Msg':'Location not found'})
 
+
+class ShopsearchView(APIView):
+    
+    def get(self, request):
+
+        q= request.GET.get("q")
+        if q is None or len(q.strip()) == 0:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        search =( Q(state__icontains=q)| Q(district__icontains=q)| Q(city__icontains=q)| Q(place__icontains=q) |
+                 Q(category__category__icontains=q)|Q(services__service_name__icontains=q)|Q(shopname__iexact=q))
+
+        search_shop=Workshopdetails.objects.filter(search).distinct()
+        if search_shop:
+            serializer = ShopSearchAdminSerializer(search_shop,many=True)
+            return Response(serializer.data,status=status.HTTP_200_OK)
+        return Response({'Msg':'Shop Not Found '},status=status.HTTP_404_NOT_FOUND)
+
+
+
+class ShopsAdminRetriveView(APIView):
+    def post(self, request):
+        usr_longitude = request.data.get('usr_longitude')
+        usr_latitude = request.data.get('usr_latitude')
+        usr_category = request.data.get('usr_category')
+
+        try:
+            usr_longitude = float(usr_longitude)
+            usr_latitude = float(usr_latitude)
+        except (ValueError, TypeError):
+            return Response({'error': 'Invalid coordinates'}, status=status.HTTP_400_BAD_REQUEST)
+
+        usr_location = Point(usr_longitude, usr_latitude, srid=4326)
+
+        shops = Workshopdetails.objects.filter(
+            shop_coordinates__distance_lte=(usr_location, Distance(km=50)),
+            category=usr_category,
+            is_approved=True
+        )
+        if not shops :
+            return Response({'Msg':'Have nt Shop here'})
+
+        serializer = ShopSearchAdminSerializer(shops, many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+
+
+
+class RequestShopListAdminView(APIView):
+    def get(self,request):
+        try:
+            request_shops =RequestShop.objects.all()
+            serializer = RequestedShopListSerializer(request_shops,many=True)
+            return Response(serializer.data,status=status.HTTP_200_OK)
+        except Exception as e :
+            return Response({'Msg':f'Haven\'t Request Shops {e}'},status=status.HTTP_404_NOT_FOUND)
+        
+
+class RequestShopUpdateAdminView(APIView):
+    def get(self,request,pk=None):
+        try:
+            request_shop =RequestShop.objects.get(id=pk)
+            serializer = RequestedShopListSerializer(request_shop)
+            return Response(serializer.data,status=status.HTTP_200_OK)
+        except Exception as e :
+            return Response({'Msg':f'Request Not Found {e}'})
+        
+    def patch(self,request,pk=None):
+        try:
+            request_shop =RequestShop.objects.get(id=pk)
+            serializer = RequestedShopListSerializer(request_shop,data=request.data)
+            if serializer.is_valid():
+                email = request.data.get('email')
+                status = request.data.get('status') 
+
+                if status == 'PENDING':
+                    message = "Your Request is still pending."
+                elif status == 'ACCEPTED':
+                    message = "Your Request has been accepted."
+                elif status == 'REJECTED':
+                    message = "Your Request has been rejected."
+
+                subject = "Your Request Updation..."
+                sender = settings.EMAIL_HOST_USER
+                recipient_list = [email]
+                verify_mail(subject, message, sender, recipient_list)
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors)
+        except Exception as e:
+            return Response({'Msg':f'Request data not found {e}'})
+            
+
+class SeriveceListAdminView(APIView):
+    def get(self,request):
+        try:
+            serice_details = Services.objects.all()
+            serializer = ServiceListAdminSerializer(serice_details,many = True)
+            return Response(serializer.data,status=status.HTTP_200_OK)
+        except Services.DoesNotExist:
+            return Response({'Msg':'Not found'},status=status.HTTP_404_NOT_FOUND)
+        
+class CategoryAdminView(APIView):
+    def get(self,request):
+
+        try:
+            category = Category.objects.all()
+            serializer = CategoryAdminSerializer(category,many = True)
+            return Response (serializer.data,status=status.HTTP_200_OK)
+        except Category.DoesNotExist:
+            return Response({'Msg':'Not Found'},status=status.HTTP_404_NOT_FOUND)
+        
+
+
+    def post(self,request):
+
+        serializer = CategoryAdminSerializer(data=request.data)
+        if serializer.is_valid():
+            category = Category.objects.create(
+                category = serializer.validated_data.get('category')
+            )
+            return Response(serializer.data,status=status.HTTP_200_OK)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    
+
+class BookingLIstAdminView(APIView):
+    def get(self,request):
+        try:
+            bookings = ServiceBooking.objects.all()
+            serializer = BookingAdminSerializer(bookings,many=True)
+            return Response(serializer.data)
+        except ServiceBooking.DoesNotExist:
+            return Response(serializer.errors)
+
+
+class BookingshopAdminView(APIView):
+    def get(self,request):
+        try:
+            shop = request.GET.get('shop_id')
+            workshop = Workshopdetails.objects.get(id=shop)
+            bookings = ServiceBooking.objects.filter(workshop=workshop)
+            serializer = ShopBookingAdminSerializer(bookings,many=True)
+            return Response(serializer.data)
+        except ServiceBooking.DoesNotExist:
+            return Response(serializer.errors)
+        
 
 
 

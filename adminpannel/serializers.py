@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from userapp.models import User,Profile
-from shopdetails.models import Workshopdetails,Services
+from userside.models import ServiceBooking
+from shopdetails.models import Workshopdetails,Services,Category
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -56,3 +57,28 @@ class ShopDetailRetriveAdminSerializer(serializers.ModelSerializer):
         instance.is_approved=validated_data.get('is_approved',instance.is_approved)
         instance.save()
         return instance
+
+class ShopSearchAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Workshopdetails
+        fields = '__all__'
+
+
+
+class CategoryAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = '__all__'
+
+
+class BookingAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServiceBooking
+        fields = ['user','workshop']
+
+
+
+class ShopBookingAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServiceBooking
+        fields = '__all__'
