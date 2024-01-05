@@ -16,12 +16,14 @@ from userapp.auths.smtp import verify_mail
 from django.db.models import Q
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import Distance
-
+from rest_framework.permissions import IsAuthenticated
+from userapp.custompermission import OnlyAdminPermission
 # Create your views here.
 
 
 
 class AdminLoginView(APIView):
+    
     def post(self, request):
 
         serializer= UserLoginSerializer(data=request.data)
@@ -39,6 +41,7 @@ class AdminLoginView(APIView):
 
      
 class UserListAdminView(APIView):
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self,request):
         try:
             users=User.objects.filter(is_shopowner=False,is_admin=False)
@@ -50,6 +53,7 @@ class UserListAdminView(APIView):
 
         
 class UserUpdateAdminView(APIView):
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self,request,pk=None):
 
         try:
@@ -83,6 +87,7 @@ class UserUpdateAdminView(APIView):
 
 
 class ShopOwnerListAdminView(APIView):
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self,request):
         try:
             owner=User.objects.filter(is_shopowner=True)
@@ -94,7 +99,7 @@ class ShopOwnerListAdminView(APIView):
 
 
 class ShopdetailsListView(APIView):
-
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self,request):
 
         try:
@@ -105,6 +110,7 @@ class ShopdetailsListView(APIView):
             return Response({'Msg':f'Shops are not found {e}'})
 
 class ShopUpdateAdminView(APIView):
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self,request,pk=None):
 
         try:
@@ -144,6 +150,7 @@ class ShopUpdateAdminView(APIView):
 
 
 class LocationAdminView(APIView):
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self,request):
 
         try:
@@ -156,6 +163,7 @@ class LocationAdminView(APIView):
 
 
 class AddLocationAdminView(APIView):
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self,request,pk=None):
         print(pk, 'Received pk')
         try:
@@ -201,7 +209,7 @@ class AddLocationAdminView(APIView):
 
 
 class ShopsearchView(APIView):
-    
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self, request):
 
         q= request.GET.get("q")
@@ -220,6 +228,7 @@ class ShopsearchView(APIView):
 
 
 class ShopsAdminRetriveView(APIView):
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def post(self, request):
         usr_longitude = request.data.get('usr_longitude')
         usr_latitude = request.data.get('usr_latitude')
@@ -247,6 +256,7 @@ class ShopsAdminRetriveView(APIView):
 
 
 class RequestShopListAdminView(APIView):
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self,request):
         try:
             request_shops =RequestShop.objects.all()
@@ -257,6 +267,7 @@ class RequestShopListAdminView(APIView):
         
 
 class RequestShopUpdateAdminView(APIView):
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self,request,pk=None):
         try:
             request_shop =RequestShop.objects.get(id=pk)
@@ -292,6 +303,7 @@ class RequestShopUpdateAdminView(APIView):
             
 
 class SeriveceListAdminView(APIView):
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self,request):
         try:
             serice_details = Services.objects.all()
@@ -301,6 +313,7 @@ class SeriveceListAdminView(APIView):
             return Response({'Msg':'Not found'},status=status.HTTP_404_NOT_FOUND)
         
 class CategoryAdminView(APIView):
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self,request):
 
         try:
@@ -324,6 +337,7 @@ class CategoryAdminView(APIView):
     
 
 class BookingLIstAdminView(APIView):
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self,request):
         try:
             bookings = ServiceBooking.objects.all()
@@ -334,6 +348,7 @@ class BookingLIstAdminView(APIView):
 
 
 class BookingshopAdminView(APIView):
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self,request):
         try:
             shop = request.GET.get('shop_id')

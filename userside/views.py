@@ -25,7 +25,7 @@ from drf_spectacular.utils import extend_schema
 
 
 class ShopsearchRetriveRequestView(APIView):
-    permission_classes=[IsAuthenticatedOrReadOnly]
+    permission_classes=[IsAuthenticatedOrReadOnly,OnlyUserPermission]
     serializer_class=ShopDetailRetriveSerializer
     extend_schema(responses=ShopDetailRetriveSerializer)
     def get(self, request):
@@ -81,7 +81,7 @@ class ShopsearchRetriveRequestView(APIView):
 
 
 class ShopsRetriveView(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,OnlyUserPermission]
     serializer_class = ShopDetailRetriveSerializer
     @extend_schema(responses=ShopDetailRetriveSerializer)
     def post(self, request):
@@ -112,14 +112,15 @@ class ShopsRetriveView(APIView):
 
 
 class UserShopRetriveView(APIView):
+     permission_classes=[IsAuthenticated,OnlyUserPermission]
      def get(self, request,pk=None):
          
         try:
-             shop=Workshopdetails.objects.get(id=pk)
-             serializer=ShopDetailRetriveSerializer(shop)
+             shop=Workshopdetails.objects.filter(id=pk,is_approved=True)
+             serializer=ShopDetailRetriveSerializer(shop,many=True)
              return Response(serializer.data,status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({'Msg':f'User Not Found {e}'},status=status.HTTP_404_NOT_FOUND)
+            return Response({'Msg':f'Shop Not Found {e}'},status=status.HTTP_404_NOT_FOUND)
          
 
 
@@ -184,34 +185,36 @@ class UserServiceBooking(APIView):
             return Response({'Msg': 'Shop not found'}, status=status.HTTP_404_NOT_FOUND)
 
     def post(self,request):
-
-        shop_id = request.GET.get('shop_id')
-        workshop = Workshopdetails.objects.get(id=shop_id)
-
-        # user = request.user
-        serializer = ServiceBookingSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                booking = ServiceBooking.objects.get(user=request.user)
-                # Update the existing ServiceBooking with new data
-                booking.workshop = workshop
-                booking.vehicle_make = serializer.validated_data.get('vehicle_make')
-                booking.model_name = serializer.validated_data.get('model_name')
-                booking.model_year = serializer.validated_data.get('model_year')
-                booking.user_service.set(serializer.validated_data.get('user_service'))
-                booking.save()
-            except ServiceBooking.DoesNotExist:
-                # If ServiceBooking doesn't exist, create a new one
-                booking = ServiceBooking.objects.create(
-                    user=request.user,
-                    workshop=workshop,
-                    vehicle_make=serializer.validated_data.get('vehicle_make'),
-                    model_name=serializer.validated_data.get('model_name'),
-                    model_year=serializer.validated_data.get('model_year'),
-                )
-                booking.user_service.set(serializer.validated_data.get('user_service'))
-            return Response (serializer.data,status=status.HTTP_200_OK)
-        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+        try:
+            shop_id = request.GET.get('shop_id')
+            workshop = Workshopdetails.objects.get(id=shop_id)
+            print(workshop,'workkkkkkkkkkkkkk')
+            serializer = ServiceBookingSerializer(data=request.data)
+            if serializer.is_valid():
+                try:
+                    booking = ServiceBooking.objects.get(user=request.user)
+                    print(booking,'bookkkkkkkkkkkkkk')
+                    booking.workshop = workshop
+                    booking.vehicle_make = serializer.validated_data.get('vehicle_make')
+                    booking.model_name = serializer.validated_data.get('model_name')
+                    booking.model_year = serializer.validated_data.get('model_year')
+                    booking.user_service.set(serializer.validated_data.get('user_service'))
+                    booking.save()
+                except ServiceBooking.DoesNotExist:
+                    
+                    booking = ServiceBooking.objects.create(
+                        user=request.user,
+                        workshop=workshop,
+                        vehicle_make=serializer.validated_data.get('vehicle_make'),
+                        model_name=serializer.validated_data.get('model_name'),
+                        model_year=serializer.validated_data.get('model_year'),
+                        
+                    )
+                    booking.user_service.set(serializer.validated_data.get('user_service'))
+                return Response (serializer.data,status=status.HTTP_200_OK)
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'Msg':f'Shop not Found {e}'})
 
 
     def put(self,request):
@@ -339,6 +342,7 @@ class UserPaymentView(APIView):
             return Response({'error_message': str(e)})
         
 class PaymentInvoice(APIView):
+    permission_classes=[IsAuthenticated,OnlyUserPermission]
     def get(self, request):
         try:
             shop_id = request.GET.get('shop_id')
@@ -359,34 +363,34 @@ class PaymentInvoice(APIView):
 
 
         
-# from django.shortcuts import render
+from django.shortcuts import render
 
 
-# from rest_framework_simplejwt.authentication import JWTAuthentication
-# from rest_framework.decorators import authentication_classes, permission_classes
-# from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.decorators import authentication_classes, permission_classes
+from rest_framework.permissions import IsAuthenticated
 
-# @authentication_classes([JWTAuthentication])
-# @permission_classes([IsAuthenticated,OnlyUserPermission])
-# def display_invoice(request, pk):
-#     try:
-#         shop = Workshopdetails.objects.get(id=pk)
-#         user = request.user  # Access the authenticated user
-#         print(user,'usrrrrrrrrrrrrrrr')
-#         user_services = ServiceBooking.objects.filter(user=user, workshop=shop)
-#         print(user_services,'serrrrrrrrrr')
-#         total_price = user_services.aggregate(total_price=Sum('user_service__price'))['total_price'] or 0
-#         print(total_price,'totllllllllllll')
-#         return render(request, 'invoice.html', {
-#             'user_service': user_services,
-#             'total_price': total_price,
-#         })
-#     except Workshopdetails.DoesNotExist:
-#         # Handle the case where the Workshopdetails object does not exist
-#         return render(request, 'error.html')
-#     except ServiceBooking.DoesNotExist:
-#         # Handle the case where the ServiceBooking object does not exist
-#         return render(request, 'error.html')
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated,OnlyUserPermission])
+def display_invoice(request, pk):
+    try:
+        shop = Workshopdetails.objects.get(id=pk)
+        user = request.user  # Access the authenticated user
+        print(user,'usrrrrrrrrrrrrrrr')
+        user_services = ServiceBooking.objects.filter(user=user, workshop=shop)
+        print(user_services,'serrrrrrrrrr')
+        total_price = user_services.aggregate(total_price=Sum('user_service__price'))['total_price'] or 0
+        print(total_price,'totllllllllllll')
+        return render(request, 'invoice.html', {
+            # 'user_service': user_services,
+            # 'total_price': total_price,
+        })
+    except Workshopdetails.DoesNotExist:
+        # Handle the case where the Workshopdetails object does not exist
+    #     return render(request, 'error.html')
+    # except ServiceBooking.DoesNotExist:
+        # Handle the case where the ServiceBooking object does not exist
+        return render(request, 'error.html')
 
 
 # This is your test secret API key.

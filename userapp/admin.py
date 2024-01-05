@@ -38,7 +38,7 @@ class RequestShopAdmin(admin.ModelAdmin):
 
 @admin.register(ServiceBooking)
 class ServiceBookingAdmin(OSMGeoAdmin):
-    list_display = ('id','user','city','user_currentlocation')
+    list_display = ('id','user','city','user_currentlocation','created_at')
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):

@@ -22,7 +22,7 @@ from userapp.custompermission import OnlyShopPermission,OnlyOwnerPermission
 
 
 class ShopCurrentLocationView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes=[IsAuthenticated,OnlyOwnerPermission]
     def get(self, request):
         client_ip, is_routable = get_client_ip(request)
         print(client_ip,'clintttttttt')
@@ -67,7 +67,7 @@ class ShopCurrentLocationView(APIView):
         return Response(data["county"], status=status.HTTP_200_OK)
 
 class ShopdetailsCreateUpdateView(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,OnlyOwnerPermission]
     serializer_class = ShopDetailSerializer
     @extend_schema(responses=ShopDetailSerializer)
     def get(self,request):
@@ -202,4 +202,18 @@ class ShopServiceBookingRetriveView(APIView):
             return Response({'Msg':'booking data not found'})
          
 
-
+from userside.models import Payment
+from userside.serializers import StripepaymentSerializer
+class ServicePaymentRetriveView(APIView):
+    permission_classes=[IsAuthenticated,OnlyShopPermission,OnlyOwnerPermission]
+    def get(self,request):
+        try:
+            shop = request.user.id
+            workshop = Workshopdetails.objects.get(shop_owner=shop)
+            print(shop,'shhhhhhhhhhhhhh')
+            payments = Payment.objects.filter(pay_workshop=workshop)
+            print(payments,'payyyyyyyyyyyyyyyy')
+            serializer = StripepaymentSerializer(payments,many = True)
+            return Response(serializer.data)
+        except User.DoesNotExist:
+            return Response({'Msg':'Shop not found'})

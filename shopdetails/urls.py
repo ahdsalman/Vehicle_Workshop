@@ -8,5 +8,6 @@ urlpatterns = [
     # path('shopdetails/',Shopdetails.as_view(),name='shopdetails'),
     path('shopdetails/',ShopdetailsCreateUpdateView.as_view(),name='shopdetailsupdate'),
     path('shopcurrentlocation/',ShopCurrentLocationView.as_view(),name='shop_currentlocation'),
-    path('bookinglist/',ShopServiceBookingRetriveView.as_view(),name='bookinglist')
+    path('bookinglist/',ShopServiceBookingRetriveView.as_view(),name='bookinglist'),
+    path('paymentlist/',ServicePaymentRetriveView.as_view(),name='paymentlist')
 ]

@@ -10,7 +10,7 @@ urlpatterns = [
     path('userpayment/',UserPaymentView.as_view(),name='userpayment'),
     path('paymentinvoice/',PaymentInvoice.as_view(),name='invoice'),
 
-    # path('invoice/<int:pk>/', display_invoice, name='invoice'),
+    path('invoice/<int:pk>/', display_invoice, name='invoice'),
     # path('paypal/create/order', CreateOrderViewRemote.as_view(), name='ordercreate'),
     # path('paypal/capture/order', CaptureOrderView.as_view(), name='captureorder')
     

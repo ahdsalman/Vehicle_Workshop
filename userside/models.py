@@ -70,7 +70,7 @@ class ServiceBooking(models.Model):
     ]
     user = models.ForeignKey(User,on_delete=models.CASCADE,related_name='bookinguser',null=True,blank=True)
     workshop = models.ForeignKey(Workshopdetails,on_delete=models.CASCADE,null=True,blank=True)
-    user_service =models.ManyToManyField(Services,blank=True,related_name='bookingservice')
+    user_service =models.ManyToManyField(Services,blank=True,related_name='bookingservice') 
     vehicle_make = models.CharField(max_length=100,null=True,blank=True)
     model_name = models.CharField(max_length=100,null=True,blank=True)
     model_year = models.IntegerField(choices = YEAR,null=True,blank=True)
@@ -80,8 +80,8 @@ class ServiceBooking(models.Model):
     district = models.CharField(max_length=100, null=True, blank=True)
     city = models.CharField(max_length=100,null=True,blank=True)
     place = models.CharField(max_length=100, null=True, blank=True)
-    created_at=models.DateTimeField(auto_now_add=True)
-    updated_at=models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    # updated_at=models.DateTimeField(auto_now=True)
 
     @property
     def longitude(self):

@@ -53,27 +53,18 @@ class RequestedShopListSerializer(serializers.ModelSerializer):
 
 
 class ServiceBookingSerializer(serializers.ModelSerializer):
-    created_date = serializers.SerializerMethodField()
-    created_time = serializers.SerializerMethodField()
+
 
     class Meta:
         model = ServiceBooking
         fields = ['id', 'user_service', 'vehicle_make', 'model_name', 'model_year',
                   'user_currentlocation', 'country', 'state', 'district', 'city', 'place',
-                  'created_date', 'created_time']
+                 'created_at' ]
 
-    # Methods to get date and time separately
-    def get_created_date(self, obj):
-        return obj.created_at.date() if obj.created_at else None
-
-    def get_created_time(self, obj):
-        return obj.created_at.time() if obj.created_at else None
-
-
-
-    def update(self, instance,validated_data):
-
-        instance.user_service= validated_data.get('user_service',instance.user_service)
+    def update(self, instance, validated_data):
+        user_service_data = validated_data.pop('user_service', None)
+        if user_service_data is not None:
+            instance.user_service.set(user_service_data)
 
         instance.save()
         return instance

@@ -43,6 +43,7 @@ class ShopDetailRetriveAdminSerializer(serializers.ModelSerializer):
             'services',
             'id_proof',
             'is_approved',
+            'is_oppen',
             'country',
             'state',
             'district',
