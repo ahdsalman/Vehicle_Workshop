@@ -47,7 +47,7 @@ class ShopsearchRetriveRequestView(APIView):
     extend_schema(responses=RequestedShopListSerializer)
     def post(self,request):
 
-        print(request.user,"kkkkkkkkk")
+        
         serializer= RequestedShopListSerializer(data=request.data)
         if serializer.is_valid():
             try:
@@ -149,7 +149,7 @@ class UserCurrentLocation(APIView):
         point = Point(data["longitude"], data["latitude"])
         try:
             service_booking = ServiceBooking.objects.get(user=request.user)
-            # Update the existing ServiceBooking with new location data
+            
             service_booking.country = data["country"]
             service_booking.state = data["region"]
             service_booking.district = data["county"]
@@ -157,7 +157,7 @@ class UserCurrentLocation(APIView):
             service_booking.user_currentlocation = point
             service_booking.save()
         except ServiceBooking.DoesNotExist:
-            # If ServiceBooking doesn't exist, create a new one
+           
             service_booking = ServiceBooking.objects.create(
                 user=request.user,
                 country=data["country"],
@@ -165,7 +165,7 @@ class UserCurrentLocation(APIView):
                 district=data["county"],
                 city=data["city"],
                 user_currentlocation=point,
-                # Other fields...
+                
             )
 
         return Response(data["county"], status=status.HTTP_200_OK)
@@ -188,12 +188,12 @@ class UserServiceBooking(APIView):
         try:
             shop_id = request.GET.get('shop_id')
             workshop = Workshopdetails.objects.get(id=shop_id)
-            print(workshop,'workkkkkkkkkkkkkk')
+            
             serializer = ServiceBookingSerializer(data=request.data)
             if serializer.is_valid():
                 try:
                     booking = ServiceBooking.objects.get(user=request.user)
-                    print(booking,'bookkkkkkkkkkkkkk')
+                    
                     booking.workshop = workshop
                     booking.vehicle_make = serializer.validated_data.get('vehicle_make')
                     booking.model_name = serializer.validated_data.get('model_name')
@@ -284,13 +284,13 @@ class UserPaymentView(APIView):
             service_name = str(response_data.get('user_service'))
             service = stripe.Product.create(
                     name= service_name,
-                    # Add more details if needed
+                    
                 )
             print(service,'prooooooo')
             price = stripe.Price.create(
                     unit_amount=int(total_price * 100),
                     currency='usd',
-                    product=service.id,  # Use the ID of the created product here
+                    product=service.id,  
                 )
 
 
@@ -311,7 +311,7 @@ class UserPaymentView(APIView):
                 success_url='http://127.0.0.1:8000/userside/invoice/',
                 cancel_url='http://127.0.0.1:8000/cancel.html',
             )
-            print(serializer,'.......................')
+           
 
             formatted_data = []
 
@@ -324,7 +324,7 @@ class UserPaymentView(APIView):
                         'price': individual_service.get('price')
                     }
                     formatted_data.append(service_details)
-            print(formatted_data,'klklklklklklklkl')
+            
 
             
             service_payment = Payment.objects.create(
@@ -346,9 +346,9 @@ class PaymentInvoice(APIView):
     def get(self, request):
         try:
             shop_id = request.GET.get('shop_id')
-            print(shop_id,'shhhhhhhhhhhh')
+            
             workshop = Workshopdetails.objects.get(id=shop_id)
-            print(workshop,'workkkkkkkkkkkkk')
+            
             user = request.user
             payment_invoice = Payment.objects.filter(paid_user=user, pay_workshop=workshop)
             serializer = StripepaymentSerializer(payment_invoice, many=True).data
@@ -375,10 +375,10 @@ from rest_framework.permissions import IsAuthenticated
 def display_invoice(request, pk):
     try:
         shop = Workshopdetails.objects.get(id=pk)
-        user = request.user  # Access the authenticated user
-        print(user,'usrrrrrrrrrrrrrrr')
+        user = request.user  
+        
         user_services = ServiceBooking.objects.filter(user=user, workshop=shop)
-        print(user_services,'serrrrrrrrrr')
+        
         total_price = user_services.aggregate(total_price=Sum('user_service__price'))['total_price'] or 0
         print(total_price,'totllllllllllll')
         return render(request, 'invoice.html', {

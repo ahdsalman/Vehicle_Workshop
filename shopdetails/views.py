@@ -85,7 +85,7 @@ class ShopdetailsCreateUpdateView(APIView):
 
         owner = request.user
         serializer = ShopDetailSerializer(data=request.data)
-        print(serializer,'salmanllllll')
+
         if serializer.is_valid():
             shop= Workshopdetails.objects.create(
                 shop_owner=owner,
@@ -140,7 +140,7 @@ class ShopdetailsCreateUpdateView(APIView):
     def put(self,request):
         shop_owner =request.user
         shop = Workshopdetails.objects.get(shop_owner=shop_owner)
-        print(shop)
+        
         serializer = ShopDetailSerializer(shop,data=request.data,partial=True)
         if serializer.is_valid():
             subject = "Shop New Update..."
@@ -193,7 +193,7 @@ class ShopServiceBookingRetriveView(APIView):
      def get(self,request):
         try:
              shop = request.user.id
-             print(shop,'bookinggggggggggggggg')
+            
              workshop = Workshopdetails.objects.prefetch_related('servicebooking_set').get(shop_owner=shop)
              bookings = workshop.servicebooking_set.all()
              serializer = ServiceBookingSerializer(bookings,many=True)
@@ -210,9 +210,7 @@ class ServicePaymentRetriveView(APIView):
         try:
             shop = request.user.id
             workshop = Workshopdetails.objects.get(shop_owner=shop)
-            print(shop,'shhhhhhhhhhhhhh')
             payments = Payment.objects.filter(pay_workshop=workshop)
-            print(payments,'payyyyyyyyyyyyyyyy')
             serializer = StripepaymentSerializer(payments,many = True)
             return Response(serializer.data)
         except User.DoesNotExist:

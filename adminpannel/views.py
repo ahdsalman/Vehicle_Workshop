@@ -165,7 +165,6 @@ class LocationAdminView(APIView):
 class AddLocationAdminView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
     def get(self,request,pk=None):
-        print(pk, 'Received pk')
         try:
             exist_location = Location.objects.get(id=pk)
             print(exist_location, 'Location object')
@@ -192,7 +191,6 @@ class AddLocationAdminView(APIView):
     def put(self,request,pk=None):
         
         loc = Location.objects.get(id=pk)
-        print(loc)
         serializer = LocationListSerializer(loc,data=request.data,partial=True)
         if serializer.is_valid():
             serializer.save()
