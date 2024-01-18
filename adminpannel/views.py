@@ -213,7 +213,12 @@ class ShopUpdateAdminView(APIView):
 
 
 class SendApprovalmail(APIView):
-
+    permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["ShopAuthentication"],
+    operation_description="Shop Registeration",
+    responses={200: 'Success', 400: "bad request", 500: "errors"},
+    )
     def post(self, request):
         users = User.objects.filter(is_shopowner=True).prefetch_related(
             Prefetch('workshops', queryset=Workshopdetails.objects.filter(is_approved=True), to_attr='approved_workshops')
@@ -225,7 +230,7 @@ class SendApprovalmail(APIView):
             message = "Verified your data and updated. Please check it..."
             sender = settings.EMAIL_HOST_USER
             send_mail_to_users.delay(subject, message, sender, recipient_emails)
-            return Response({'msg': 'Email sent to all approved workshops'})
+            return Response(recipient_emails,status=status.HTTP_200_OK)
         else:
             return Response({'msg': 'No approved workshops found'})
 

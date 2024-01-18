@@ -15,7 +15,3 @@ class MessageList(generics.ListCreateAPIView):
     serializer_class = MessageSerializer
     ordering = ('-timestamp',)
 
-# 
-
-# class CreateRoom(generics.CreateAPIView):
-#     queryset=

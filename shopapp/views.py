@@ -46,6 +46,7 @@ class WorkshopOwnerCreateView(APIView):
             return Response({'Msg': 'Enter your Email'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+from datetime import datetime, timedelta
 
 
 class EmailVerifyView(APIView):
@@ -62,8 +63,9 @@ class EmailVerifyView(APIView):
             try:
                 User.objects.get(email=email)
                 otp = math.floor(random.randint(100000, 999999))
+                expiration_time = datetime.now() + timedelta(minutes=5)
                 request.session['email']=email
-                request.session['otp']=otp
+                request.session['otp']={'value': otp, 'expiration_time': expiration_time.strftime('%Y-%m-%d %H:%M:%S')}
             
                 subject = "Your OTP for Email Verification"
                 message = f"Your OTP is:{otp}"
@@ -74,7 +76,8 @@ class EmailVerifyView(APIView):
 
                 response_data={
                     'email':email, 
-                    'otp':otp 
+                    'otp':otp ,
+                    'expiration_time': expiration_time
                 }
                 return Response(response_data, status=status.HTTP_200_OK)
             except User.DoesNotExist:
@@ -93,23 +96,28 @@ class EmailOtpVerifyView(APIView):
         serializer=OtpVerifySerializer(data=request.data)
         if serializer.is_valid():
             email=request.session.get('email') 
-            stored_otp = request.session.get('otp')
-            
-            usr_otp =   request.data.get('entered_otp')   
-             
-            if int(usr_otp) == int(stored_otp):
-                try:
-                    user=User.objects.get(email=email)
-                    if user.is_active and user.is_shopowner:
-                        token=get_tokens_for_user(user)
-                        return Response({'Msg':'Your Login Successful','token':token},status=status.HTTP_200_OK)
-                    else:
-                        return Response({'Msg':'You are bloked or Not shop Owner'})
-            
-                except User.DoesNotExist:
-                    return Response({'Msg':'Your Email is invalid'},status=status.HTTP_404_NOT_FOUND)
+            stored_otp_info = request.session.get('otp')
 
-            return Response({'Invalid OTP'},status=status.HTTP_401_UNAUTHORIZED)
+            if stored_otp_info:
+                stored_otp = stored_otp_info['value']
+                expiration_time_str = stored_otp_info['expiration_time']
+                expiration_time = datetime.strptime(expiration_time_str, '%Y-%m-%d %H:%M:%S')
+                usr_otp =   request.data.get('entered_otp')   
+             
+                if int(usr_otp) == int(stored_otp) and datetime.now() < expiration_time:
+                    try:
+                        user=User.objects.get(email=email)
+                        if user.is_active and user.is_shopowner:
+                            token=get_tokens_for_user(user)
+                            return Response({'Msg':'Your Login Successful','token':token},status=status.HTTP_200_OK)
+                        else:
+                            return Response({'Msg':'You are bloked or Not shop Owner'})
+                
+                    except User.DoesNotExist:
+                        return Response({'Msg':'Your Email is invalid'},status=status.HTTP_404_NOT_FOUND)
+
+                return Response({'Msg': 'Invalid or expired OTP'},status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'Msg': 'OTP not found in the session'})
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
    
