@@ -43,3 +43,7 @@ class ServiceBookingAdmin(OSMGeoAdmin):
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
     list_display=['id','paid_user','pay_workshop']
+
+# @admin.register(Notification)
+# class NotificationAdmin(admin.ModelAdmin):
+#     list_display=['id','notification_shop']

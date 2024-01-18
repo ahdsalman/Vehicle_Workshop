@@ -9,7 +9,6 @@ from rest_framework.permissions import IsAuthenticated
 from shopdetails.serializers import ServiceSerializer,ShopDetailSerializer,ShopDetailRetriveSerializer
 from rest_framework.response import Response
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema
 from ipware import get_client_ip
 from django.contrib.gis.geos import Point
 import urllib, json
@@ -17,12 +16,21 @@ import os
 from django.conf import settings
 from userapp.auths.smtp import verify_mail
 from userapp.custompermission import OnlyShopPermission,OnlyOwnerPermission
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework.parsers import MultiPartParser
+from shopdetails.tasks import send_mail_to_users
 # Create your views here.
 
 
 
 class ShopCurrentLocationView(APIView):
     permission_classes=[IsAuthenticated,OnlyOwnerPermission]
+    @swagger_auto_schema(
+    tags=["ShopDetails"],
+    operation_description="Shop add current location",
+    responses={200: ShopDetailRetriveSerializer,400: "bad request", 500: "errors"},
+    )
     def get(self, request):
         client_ip, is_routable = get_client_ip(request)
         print(client_ip,'clintttttttt')
@@ -56,7 +64,6 @@ class ShopCurrentLocationView(APIView):
         )
         
         if not created:
-            # If Workshopdetails already existed, update the location information
             workshop_details.country = data["country"]
             workshop_details.state = data["region"]
             workshop_details.district = data["county"]
@@ -66,10 +73,15 @@ class ShopCurrentLocationView(APIView):
 
         return Response(data["county"], status=status.HTTP_200_OK)
 
+
 class ShopdetailsCreateUpdateView(APIView):
     permission_classes=[IsAuthenticated,OnlyOwnerPermission]
-    serializer_class = ShopDetailSerializer
-    @extend_schema(responses=ShopDetailSerializer)
+    parser_classes=[MultiPartParser]
+    @swagger_auto_schema(
+    tags=["ShopDetails"],
+    operation_description="Shop Details get",
+    responses={200: ShopDetailRetriveSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request):
         try:
             shop_owner =request.user
@@ -81,6 +93,12 @@ class ShopdetailsCreateUpdateView(APIView):
         except User.DoesNotExist:
             return Response({'Msg':'User Not Found'},status=status.HTTP_404_NOT_FOUND)
         
+    @swagger_auto_schema(
+    tags=["ShopDetails"],
+    operation_description="Shop Details creation",
+    responses={200: ShopDetailSerializer, 400: "bad request", 500: "errors"},
+    request_body=ShopDetailSerializer
+    )
     def post(self,request):
 
         owner = request.user
@@ -101,21 +119,17 @@ class ShopdetailsCreateUpdateView(APIView):
                 
             )
             category_id = serializer.validated_data.get('category')
-            print(f"Category ID: {category_id}")
             try:
                 select_category=Category.objects.get(category=category_id)
                 shop.category=select_category
                 shop.save()
             except Category.DoesNotExist as e:
-                print(f"Category does not exist or error: {e}")
-                return Response({'error': 'Category does not exist.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': f'Category does not exist.{e}'}, status=status.HTTP_400_BAD_REQUEST)
+            
             service_ids = [service.id for service in serializer.validated_data.get('services', [])]
-
-                    
+  
             existing_services = Services.objects.filter(id__in=service_ids)
-            existing_service_ids = list(existing_services.values_list('id', flat=True))
-            print("Provided Service IDs:", service_ids)
-            print("Existing Service IDs:", existing_service_ids)
+            existing_service_ids = existing_services.values_list('id', flat=True)
             if set(service_ids) != set(existing_service_ids):
                 
                 return Response({'error': 'One or more services do not exist.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -135,8 +149,12 @@ class ShopdetailsCreateUpdateView(APIView):
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     
 
-    serializer_class = ShopDetailSerializer
-    @extend_schema(responses=ShopDetailSerializer)  
+    @swagger_auto_schema(
+    tags=["ShopDetails"],
+    operation_description="Shop Details updation",
+    responses={200: ShopDetailSerializer, 400: "bad request", 500: "errors"},
+    request_body=ShopDetailSerializer
+    )
     def put(self,request):
         shop_owner =request.user
         shop = Workshopdetails.objects.get(shop_owner=shop_owner)
@@ -157,7 +175,11 @@ class ShopdetailsCreateUpdateView(APIView):
             return Response(updated_data,status=status.HTTP_200_OK)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
        
-
+    @swagger_auto_schema(
+    tags=["ShopDetails"],
+    operation_description="Shop Details Delete",
+    responses={200: ShopDetailSerializer, 400: "bad request", 500: "errors"},
+    )
     def delete(self,request):
         try:
             shop_owner = request.user
@@ -168,16 +190,21 @@ class ShopdetailsCreateUpdateView(APIView):
             return Response({'Msg': 'Workshop details not found...!'}, status=status.HTTP_404_NOT_FOUND)
 
 
+    
 class AddServicesCreateView(APIView):
     permission_classes=[IsAuthenticated,OnlyShopPermission,OnlyOwnerPermission]
-    serializer_class = ServiceSerializer
-    @extend_schema(responses=ServiceSerializer)
+    @swagger_auto_schema(
+    tags=["Shop Add Service"],
+    operation_description="Shop service adding",
+    responses={200: ServiceSerializer, 400: "bad request", 500: "errors"},
+    request_body=ServiceSerializer
+    )
     def post(self, request):
 
         serializer = ServiceSerializer(data=request.data)
         if serializer.is_valid():
                 service_data = serializer.validated_data.get('service_name')
-                price_data = serializer.validated_data.get('price')  # Retrieve the price
+                price_data = serializer.validated_data.get('price')
 
                 service, created = Services.objects.get_or_create(service_name=service_data,price=price_data, defaults={'price': price_data})
                 if created:
@@ -190,6 +217,11 @@ class AddServicesCreateView(APIView):
 
 class ShopServiceBookingRetriveView(APIView):
      permission_classes=[IsAuthenticated,OnlyShopPermission,OnlyOwnerPermission]
+     @swagger_auto_schema(
+    tags=["Shop Service Booking details"],
+    operation_description="Shop booking details get",
+    responses={200: ServiceBookingSerializer, 400: "bad request", 500: "errors"},
+    )
      def get(self,request):
         try:
              shop = request.user.id
@@ -204,8 +236,14 @@ class ShopServiceBookingRetriveView(APIView):
 
 from userside.models import Payment
 from userside.serializers import StripepaymentSerializer
+
 class ServicePaymentRetriveView(APIView):
     permission_classes=[IsAuthenticated,OnlyShopPermission,OnlyOwnerPermission]
+    @swagger_auto_schema(
+    tags=["Shop Payment Details"],
+    operation_description="Shop Payment Details get",
+    responses={200: ServiceBookingSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request):
         try:
             shop = request.user.id

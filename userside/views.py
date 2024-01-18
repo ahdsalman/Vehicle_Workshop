@@ -13,11 +13,15 @@ from django.conf import settings
 import urllib, json
 import os
 from django.db.models import Q
-from userside.serializers import LocationListSerializer,RequestedShopListSerializer,ServiceBookingSerializer,PaymentSerializer,StripepaymentSerializer
+from userside.serializers import (LocationListSerializer,RequestedShopListSerializer,
+                                  ServiceBookingSerializer,PaymentSerializer,
+                                  StripepaymentSerializer)
 from shopdetails.serializers import ShopDetailRetriveSerializer,ServiceSerializer
 from django.contrib.gis.measure import Distance
 from userapp.auths.smtp import verify_mail
-from drf_spectacular.utils import extend_schema
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from shopdetails.tasks import send_mail_to_users
 
 
 
@@ -26,8 +30,21 @@ from drf_spectacular.utils import extend_schema
 
 class ShopsearchRetriveRequestView(APIView):
     permission_classes=[IsAuthenticatedOrReadOnly,OnlyUserPermission]
-    serializer_class=ShopDetailRetriveSerializer
-    extend_schema(responses=ShopDetailRetriveSerializer)
+    @swagger_auto_schema(
+    tags=["User Searching"],
+    operation_description="User Search for shop",
+    responses={200: ShopDetailRetriveSerializer, 400: "bad request", 500: "errors"},
+     manual_parameters=[
+        openapi.Parameter(
+            name='q',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            description='Search',
+            required=True
+        ),
+        
+    ]
+    )
     def get(self, request):
 
         q= request.GET.get("q")
@@ -43,8 +60,12 @@ class ShopsearchRetriveRequestView(APIView):
             return Response(serializer.data,status=status.HTTP_200_OK)
         return Response({'Msg':'Shop Not Found '},status=status.HTTP_404_NOT_FOUND)
 
-    serializer_class = RequestedShopListSerializer
-    extend_schema(responses=RequestedShopListSerializer)
+    @swagger_auto_schema(
+    tags=["User Request for add shop"],
+    operation_description="User request for add shop specifide category,service and location ",
+    responses={200: RequestedShopListSerializer, 400: "bad request", 500: "errors"},
+    request_body=RequestedShopListSerializer
+    )
     def post(self,request):
 
         
@@ -81,38 +102,96 @@ class ShopsearchRetriveRequestView(APIView):
 
 
 class ShopsRetriveView(APIView):
-    permission_classes=[IsAuthenticated,OnlyUserPermission]
-    serializer_class = ShopDetailRetriveSerializer
-    @extend_schema(responses=ShopDetailRetriveSerializer)
+    permission_classes = [IsAuthenticated, OnlyUserPermission]
+
+    @swagger_auto_schema(
+        tags=["User Searching"],
+        operation_description="User Search shops by location and category (if want user) within distance",
+        responses={200: ShopDetailRetriveSerializer, 400: "bad request", 500: "errors"},
+        manual_parameters=[
+            openapi.Parameter(
+                name='usr_longitude',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_NUMBER,
+                description='User longitude',
+            ),
+            openapi.Parameter(
+                name='usr_latitude',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_NUMBER,
+                description='User latitude',
+            ),
+            openapi.Parameter(
+                name='usr_distance',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_NUMBER,
+                description='User distance',
+            ),
+            openapi.Parameter(
+                name='usr_category',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                description='User category',
+            ),
+        ]
+    )
     def post(self, request):
         usr_longitude = request.data.get('usr_longitude')
         usr_latitude = request.data.get('usr_latitude')
+        usr_distance = request.data.get('usr_distance')
         usr_category = request.data.get('usr_category')
+    
 
         try:
             usr_longitude = float(usr_longitude)
             usr_latitude = float(usr_latitude)
+            
         except (ValueError, TypeError):
-            return Response({'error': 'Invalid coordinates'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Invalid coordinates or distance'}, status=status.HTTP_400_BAD_REQUEST)
 
-        usr_location = Point(usr_longitude, usr_latitude, srid=4326)
+        if usr_category is not None and usr_distance is not None:
+            usr_location = Point(usr_longitude, usr_latitude, srid=4326)
 
-        shops = Workshopdetails.objects.filter(
-            shop_coordinates__distance_lte=(usr_location, Distance(km=50)),
-            category=usr_category,
-            is_approved=True
-        )
-        if not shops :
-            return Response({'Msg':'Have nt Shop here'})
+            shops = Workshopdetails.objects.filter(
+                shop_coordinates__distance_lte=(usr_location, Distance(km=usr_distance)),
+                category=usr_category,
+                is_approved=True,
+            )
+        elif usr_category is not None and not usr_distance:
+            usr_location = Point(usr_longitude, usr_latitude, srid=4326)
+            shops = Workshopdetails.objects.filter(
+                shop_coordinates__distance_lte=(usr_location, Distance(km=10)),
+                category=usr_category,
+                is_approved=True,
+            )
+        elif usr_distance is not None and not usr_category:
+            usr_location = Point(usr_longitude, usr_latitude, srid=4326)
+            shops = Workshopdetails.objects.filter(
+                shop_coordinates__distance_lte=(usr_location, Distance(km=usr_distance)),
+                is_approved=True,
+            )
+        else:
+            usr_location = Point(usr_longitude, usr_latitude, srid=4326)
+            shops = Workshopdetails.objects.filter(
+                shop_coordinates__distance_lte=(usr_location, Distance(km=10)),
+                is_approved=True,
+            )
+
+        if not shops:
+            return Response({'Msg': 'No shops found'})
 
         serializer = ShopDetailRetriveSerializer(shops, many=True)
-        return Response(serializer.data,status=status.HTTP_200_OK)
-
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 
 class UserShopRetriveView(APIView):
      permission_classes=[IsAuthenticated,OnlyUserPermission]
+     @swagger_auto_schema(
+    tags=["User ShopRetrive"],
+    operation_description="Show specifide shop",
+    responses={200: ShopDetailRetriveSerializer, 400: "bad request", 500: "errors"},
+    )
      def get(self, request,pk=None):
          
         try:
@@ -126,6 +205,11 @@ class UserShopRetriveView(APIView):
 
 class UserCurrentLocation(APIView):
     permission_classes = [IsAuthenticated,OnlyUserPermission]
+    @swagger_auto_schema(
+    tags=["User Booking"],
+    operation_description="User add current location",
+    responses={400: "bad request", 500: "errors"},
+    )
     def get(self, request):
         client_ip, is_routable = get_client_ip(request)
         print(client_ip,'clintttttttt')
@@ -172,6 +256,21 @@ class UserCurrentLocation(APIView):
 
 class UserServiceBooking(APIView):
     permission_classes = [IsAuthenticated,OnlyUserPermission]
+    @swagger_auto_schema(
+    tags=["User Booking"],
+    operation_description="User get booking part of user specifide shop",
+    responses={200: ServiceSerializer, 400: "bad request", 500: "errors"},
+      manual_parameters=[
+        openapi.Parameter(
+            name='shop_id',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            description='ID of the shop',
+            required=True
+        ),
+        
+    ]
+    )
     def get(self, request):
         shop_id = request.GET.get("shop_id")
         if not shop_id:
@@ -183,7 +282,23 @@ class UserServiceBooking(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Workshopdetails.DoesNotExist:
             return Response({'Msg': 'Shop not found'}, status=status.HTTP_404_NOT_FOUND)
-
+        
+    @swagger_auto_schema(
+    tags=["User Booking"],
+    operation_description="User booking creation",
+    responses={200: ServiceBookingSerializer, 400: "bad request", 500: "errors"},
+    request_body=ServiceBookingSerializer,
+    manual_parameters=[
+        openapi.Parameter(
+            name='shop_id',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            description='ID of the shop',
+            required=True
+        ),
+        
+    ]
+    )
     def post(self,request):
         try:
             shop_id = request.GET.get('shop_id')
@@ -216,7 +331,22 @@ class UserServiceBooking(APIView):
         except Exception as e:
             return Response({'Msg':f'Shop not Found {e}'})
 
-
+    @swagger_auto_schema(
+    tags=["User Booking"],
+    operation_description="User booking update",
+    responses={200: ServiceBookingSerializer, 400: "bad request", 500: "errors"},
+    request_body=ServiceBookingSerializer,
+    manual_parameters=[
+        openapi.Parameter(
+            name='shop_id',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            description='ID of the shop',
+            required=True
+        ),
+        
+    ]
+    )
     def put(self,request):
         try:
             shop_id = request.GET.get('shop_id')
@@ -236,15 +366,28 @@ class UserServiceBooking(APIView):
         
 
 from django.db.models import Sum 
-from paypal.standard.forms import PayPalPaymentsForm
 from django.conf import settings
-import uuid
-from django.urls import reverse
 import os
 import stripe
+
 stripe.api_key = os.getenv('STRIPE_SECRET')
 class UserPaymentView(APIView):
     permission_classes = [IsAuthenticated,OnlyUserPermission]
+    @swagger_auto_schema(
+    tags=["User Payment"],
+    operation_description="User Payment bill get",
+    responses={200: PaymentSerializer, 400: "bad request", 500: "errors"},
+    manual_parameters=[
+        openapi.Parameter(
+            name='shop_id',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            description='ID of the shop',
+            required=True
+        ),
+        
+    ]
+    )
     def get(self,request):
 
         try:
@@ -266,7 +409,22 @@ class UserPaymentView(APIView):
         
 
 
+    @swagger_auto_schema(
+    tags=["User Payment"],
+    operation_description="User stripe Payment post",
+    responses={200: PaymentSerializer, 400: "bad request", 500: "errors"},
+    request_body=PaymentSerializer,
+    manual_parameters=[
+        openapi.Parameter(
+            name='shop_id',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            description='ID of the shop',
+            required=True
+        ),
         
+    ]
+    )
     def post(self, request):
         try:
             shop_id = request.GET.get('shop_id')
@@ -343,6 +501,21 @@ class UserPaymentView(APIView):
         
 class PaymentInvoice(APIView):
     permission_classes=[IsAuthenticated,OnlyUserPermission]
+    @swagger_auto_schema(
+    tags=["User Payment"],
+    operation_description="User stripe Payment invoice get",
+    responses={200: PaymentSerializer, 400: "bad request", 500: "errors"},
+    manual_parameters=[
+        openapi.Parameter(
+            name='shop_id',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            description='ID of the shop',
+            required=True
+        ),
+        
+    ]
+    )
     def get(self, request):
         try:
             shop_id = request.GET.get('shop_id')

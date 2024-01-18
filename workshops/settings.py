@@ -37,6 +37,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -46,15 +47,19 @@ INSTALLED_APPS = [
     # External packages
     'rest_framework',
     'rest_framework_simplejwt',
-    'drf_spectacular',
+    'drf_yasg',
     "rest_framework_gis",
     "django.contrib.gis",
+    "django_celery_results",
+    'django_celery_beat',
+    'channels',
     # Internal Apps
     'userapp',
     'shopapp',
     'userside',
     'shopdetails',
     'adminpannel',
+    'chat'
 ]
 
 MIDDLEWARE = [
@@ -85,7 +90,37 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'workshops.wsgi.application'
+# WSGI_APPLICATION = 'workshops.wsgi.application'
+
+ASGI_APPLICATION = 'workshops.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': "channels.layers.InMemoryChannelLayer"
+        }
+    }
+
+
+# Notification handling
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'chat': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}
 
 
 # Database
@@ -169,20 +204,40 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
-    # Other settings...
-    'DEFAULT_SCHEMA_CLASS':'drf_spectacular.openapi.AutoSchema',
+   
 }
 
-SPECTACULAR_SETTINGS = {'TITLE':'Backend Projrct',
-                        "SERVE_INCLUDE_SCHEMA":False,
-                        "SECURITY_DEFINITIONS": {
-            "Bearer Token": {
-            "type": "apiKey",
+# swagger
+SWAGGER_SETTINGS = {
+    "TITLE": "Motor Vehicle Workshop Service",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "in": "header",
             "name": "Authorization",
-            "in": "header"
-        }
+            "type": "apiKey",
+        },
     },
 }
+
+
+
+
+# CELERY SETTINGS
+
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_BACKEND = 'django-db'
+# CELERY_TIMEZONE = 'Asia/Kolkata'
+
+
+#celery beat settings
+CELERY_BEAT_SCHEDULER='django_celery_beat.schedulers:DatabaseScheduler'
+
+
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),

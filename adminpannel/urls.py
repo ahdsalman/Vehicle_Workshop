@@ -23,5 +23,8 @@ urlpatterns = [
     path('adminbookingshop/',BookingshopAdminView.as_view(),name='bookingshop'),
 
 
+    path('sendmail/',SendApprovalmail.as_view(),name='sendbulkemail'),
+
+
     
 ]

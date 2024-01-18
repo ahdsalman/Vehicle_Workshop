@@ -41,3 +41,7 @@ class Workshopdetails(models.Model):
     # def __str__(self) :
     #     return self.shopname
     
+
+# class Notification(models.Model):
+#     notification_shop = models.ForeignKey(Workshopdetails,on_delete=models.CASCADE)
+#     notification_location = models.CharField(max_length=250,null=True)

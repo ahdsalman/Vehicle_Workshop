@@ -3,10 +3,13 @@ from rest_framework.views import APIView
 from userapp.models import User
 from userside.models import Location,RequestShop,ServiceBooking
 from shopdetails.models import Workshopdetails,Services,Category
+from adminpannel.models import Notifications
 from userapp.serializers import UserLoginSerializer,UserProfileSerializer
 from userside.serializers import LocationListSerializer,RequestedShopListSerializer
-from adminpannel.serializers import (ShopDetailRetriveAdminSerializer,UserProfileListSerializer,ShopSearchAdminSerializer,ServiceListAdminSerializer,
-                                     CategoryAdminSerializer,BookingAdminSerializer,ShopBookingAdminSerializer)
+from adminpannel.serializers import (ShopDetailRetriveAdminSerializer,UserProfileListSerializer,
+                                     ShopSearchAdminSerializer,ServiceListAdminSerializer,
+                                     CategoryAdminSerializer,BookingAdminSerializer,
+                                     ShopBookingAdminSerializer)
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate
@@ -18,12 +21,25 @@ from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import Distance
 from rest_framework.permissions import IsAuthenticated
 from userapp.custompermission import OnlyAdminPermission
+from shopdetails.tasks import send_mail_to_users,send_notifications_to_users
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from django.db.models import Prefetch
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
+
 # Create your views here.
 
 
 
 class AdminLoginView(APIView):
-    
+    @swagger_auto_schema(
+    tags=["AdminProfile"],
+    operation_description="Login for Admin",
+    responses={200: UserLoginSerializer, 400: "bad request", 500: "errors"},
+    request_body=UserLoginSerializer
+    )
     def post(self, request):
 
         serializer= UserLoginSerializer(data=request.data)
@@ -42,6 +58,11 @@ class AdminLoginView(APIView):
      
 class UserListAdminView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminUsersView"],
+    operation_description="Admin User List",
+    responses={200: UserProfileListSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request):
         try:
             users=User.objects.filter(is_shopowner=False,is_admin=False)
@@ -54,6 +75,11 @@ class UserListAdminView(APIView):
         
 class UserUpdateAdminView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminUserUpdate"],
+    operation_description="Admin User Update",
+    responses={200: UserProfileListSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request,pk=None):
 
         try:
@@ -63,6 +89,12 @@ class UserUpdateAdminView(APIView):
         except Exception as e :
             return Response({'Msg':f'User Not Found {e}'},status=status.HTTP_404_NOT_FOUND)
         
+    @swagger_auto_schema(
+    tags=["AdminUserUpdate"],
+    operation_description="Admin User Update",
+    responses={200: UserProfileListSerializer, 400: "bad request", 500: "errors"},
+    request_body=UserProfileListSerializer
+    )
     def patch(self,request,pk=None):
 
         try:
@@ -74,6 +106,11 @@ class UserUpdateAdminView(APIView):
         except Exception as e:
             return Response({"Msg":f'User not found {e}'})
         
+    @swagger_auto_schema(
+    tags=["AdminUserUpdate"],
+    operation_description="Admin User Update",
+    responses={200: UserLoginSerializer, 400: "bad request", 500: "errors"},
+    )
     def delete(self,request,pk=None):
 
         try:
@@ -87,7 +124,13 @@ class UserUpdateAdminView(APIView):
 
 
 class ShopOwnerListAdminView(APIView):
+    
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminShopOwnerList"],
+    operation_description="Admin ShopOwner List",
+    responses={200: UserProfileListSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request):
         try:
             owner=User.objects.filter(is_shopowner=True)
@@ -100,6 +143,11 @@ class ShopOwnerListAdminView(APIView):
 
 class ShopdetailsListView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminShopsList"],
+    operation_description="Admin Shops List",
+    responses={200: ShopDetailRetriveAdminSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request):
 
         try:
@@ -111,6 +159,11 @@ class ShopdetailsListView(APIView):
 
 class ShopUpdateAdminView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminShopUpdate"],
+    operation_description="Admin Shop get",
+    responses={200: ShopDetailRetriveAdminSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request,pk=None):
 
         try:
@@ -119,26 +172,37 @@ class ShopUpdateAdminView(APIView):
             return Response(serializer.data)
         except Exception as e:
             return Response({'Msg':f'Shop NOt Found {e}'})
-        
-    def put(self,request,pk=None):
+    @swagger_auto_schema(
+    tags=["AdminShopUpdate"],
+    operation_description="Admin Shop update",
+    responses={200: ShopDetailRetriveAdminSerializer, 400: "bad request", 500: "errors"},
+    request_body=ShopDetailRetriveAdminSerializer
+    )
+
+    def put(self, request, pk=None):
         try:
             shop = Workshopdetails.objects.get(id=pk)
-            serializer = ShopDetailRetriveAdminSerializer(shop,data=request.data,partial=True)
+            serializer = ShopDetailRetriveAdminSerializer(shop, data=request.data, partial=True)
             if serializer.is_valid():
-                email = request.data.get('email')
-
-                subject = "Your shop data updated..."
-                message = "Verified your data and updated. Please check it..."
-                sender = settings.EMAIL_HOST_USER
-                recipient_list = [email]
-                verify_mail(subject, message, sender, recipient_list)
+                approved = request.data.get('is_approved')
                 serializer.save()
-            
+                if approved:
+                    content = 'NewShopRegistered'
+                    name = shop.shopname
+                    location = shop.place
+                    send_notifications_to_users.delay(name, location, content)
+
+                    return Response(serializer.data)
                 return Response(serializer.data)
             return Response(serializer.errors)
-        except Exception as e :
-            return Response({'Msg':f'Shop Not Found {e}'})
+        except Exception as e:
+            return Response({'Msg': f'Shop Not Found {e}'})
         
+    @swagger_auto_schema(
+    tags=["AdminShopUpdate"],
+    operation_description="Admin Shop Delete",
+    responses={200: UserProfileListSerializer, 400: "bad request", 500: "errors"},
+    )
     def delete(self,request,pk=None):
         try:
             shop =Workshopdetails.objects.get(id=pk)
@@ -148,9 +212,31 @@ class ShopUpdateAdminView(APIView):
             return Response({'Msg':f'Shop data not found {e}'})
 
 
+class SendApprovalmail(APIView):
+
+    def post(self, request):
+        users = User.objects.filter(is_shopowner=True).prefetch_related(
+            Prefetch('workshops', queryset=Workshopdetails.objects.filter(is_approved=True), to_attr='approved_workshops')
+        )
+        recipient_emails = [user.email for user in users if user.approved_workshops]
+
+        if recipient_emails:
+            subject = "Your shop data updated..."
+            message = "Verified your data and updated. Please check it..."
+            sender = settings.EMAIL_HOST_USER
+            send_mail_to_users.delay(subject, message, sender, recipient_emails)
+            return Response({'msg': 'Email sent to all approved workshops'})
+        else:
+            return Response({'msg': 'No approved workshops found'})
+
 
 class LocationAdminView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminLocationsList"],
+    operation_description="Admin ocations get",
+    responses={200: LocationListSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request):
 
         try:
@@ -164,6 +250,11 @@ class LocationAdminView(APIView):
 
 class AddLocationAdminView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminLocationUpdate"],
+    operation_description="Admin Shop get",
+    responses={200: LocationListSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request,pk=None):
         try:
             exist_location = Location.objects.get(id=pk)
@@ -172,6 +263,13 @@ class AddLocationAdminView(APIView):
             return Response(serializer.data,status=status.HTTP_200_OK)
         except Exception as e :
             return Response({'Msg':f'Location not found {e}'},status=status.HTTP_400_BAD_REQUEST)
+        
+    @swagger_auto_schema(
+    tags=["AdminLocationUpdate"],
+    operation_description="Admin Location Creation",
+    responses={200: LocationListSerializer, 400: "bad request", 500: "errors"},
+    request_body=LocationListSerializer
+    )
         
     def post(self,request):
 
@@ -188,6 +286,13 @@ class AddLocationAdminView(APIView):
             return Response(serializer.data,status=status.HTTP_200_OK)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     
+
+    @swagger_auto_schema(
+    tags=["AdminLocationUpdate"],
+    operation_description="Admin Location Update",
+    responses={200: LocationListSerializer, 400: "bad request", 500: "errors"},
+    request_body=LocationListSerializer
+    )
     def put(self,request,pk=None):
         
         loc = Location.objects.get(id=pk)
@@ -197,6 +302,12 @@ class AddLocationAdminView(APIView):
             return Response(serializer.data,status=status.HTTP_200_OK)
         return Response(serializer.data,status=status.HTTP_200_OK)
     
+
+    @swagger_auto_schema(
+    tags=["AdminLocationUpdate"],
+    operation_description="Admin Location Delete",
+    responses={200: LocationListSerializer, 400: "bad request", 500: "errors"},
+    )
     def delete(self,request,pk=None):
         try:
             location = Location.objects.get(id=pk)
@@ -208,6 +319,21 @@ class AddLocationAdminView(APIView):
 
 class ShopsearchView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminSerch"],
+    operation_description="Admin Shop Serch",
+    responses={200: ShopSearchAdminSerializer, 400: "bad request", 500: "errors"},
+    manual_parameters=[
+        openapi.Parameter(
+            name='q',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            description='Search',
+            required=True
+        ),
+        
+    ]
+    )
     def get(self, request):
 
         q= request.GET.get("q")
@@ -227,6 +353,12 @@ class ShopsearchView(APIView):
 
 class ShopsAdminRetriveView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminShopRetrive"],
+    operation_description="Admin Shop retrive by location and category",
+    responses={200: ShopSearchAdminSerializer, 400: "bad request", 500: "errors"},
+    request_body=ShopSearchAdminSerializer
+    )
     def post(self, request):
         usr_longitude = request.data.get('usr_longitude')
         usr_latitude = request.data.get('usr_latitude')
@@ -255,6 +387,11 @@ class ShopsAdminRetriveView(APIView):
 
 class RequestShopListAdminView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminShopRequestList"],
+    operation_description="Admin get Requested Shops",
+    responses={200: RequestedShopListSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request):
         try:
             request_shops =RequestShop.objects.all()
@@ -266,6 +403,11 @@ class RequestShopListAdminView(APIView):
 
 class RequestShopUpdateAdminView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminRequestedShopUpdate"],
+    operation_description="Admin get Requested Shop",
+    responses={200: RequestedShopListSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request,pk=None):
         try:
             request_shop =RequestShop.objects.get(id=pk)
@@ -274,6 +416,13 @@ class RequestShopUpdateAdminView(APIView):
         except Exception as e :
             return Response({'Msg':f'Request Not Found {e}'})
         
+
+    @swagger_auto_schema(
+    tags=["AdminRequestedShopUpdate"],
+    operation_description="Admin update Requested Shop",
+    responses={200: RequestedShopListSerializer, 400: "bad request", 500: "errors"},
+    request_body=RequestedShopListSerializer
+    )
     def patch(self,request,pk=None):
         try:
             request_shop =RequestShop.objects.get(id=pk)
@@ -302,6 +451,11 @@ class RequestShopUpdateAdminView(APIView):
 
 class SeriveceListAdminView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminServicesList"],
+    operation_description="Admin update Requested Shop",
+    responses={200: ServiceListAdminSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request):
         try:
             serice_details = Services.objects.all()
@@ -312,6 +466,11 @@ class SeriveceListAdminView(APIView):
         
 class CategoryAdminView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminCategoryCreation"],
+    operation_description="Admin get Categories",
+    responses={200: CategoryAdminSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request):
 
         try:
@@ -322,7 +481,12 @@ class CategoryAdminView(APIView):
             return Response({'Msg':'Not Found'},status=status.HTTP_404_NOT_FOUND)
         
 
-
+    @swagger_auto_schema(
+    tags=["AdminCategoryCreation"],
+    operation_description="Admin Create Category",
+    responses={200: CategoryAdminSerializer, 400: "bad request", 500: "errors"},
+    request_body=CategoryAdminSerializer
+    )
     def post(self,request):
 
         serializer = CategoryAdminSerializer(data=request.data)
@@ -336,6 +500,11 @@ class CategoryAdminView(APIView):
 
 class BookingLIstAdminView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminBookingsList"],
+    operation_description="Admin get all Bookings",
+    responses={200: BookingAdminSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request):
         try:
             bookings = ServiceBooking.objects.all()
@@ -347,6 +516,22 @@ class BookingLIstAdminView(APIView):
 
 class BookingshopAdminView(APIView):
     permission_classes=[IsAuthenticated,OnlyAdminPermission]
+    @swagger_auto_schema(
+    tags=["AdminShopsBookingList"],
+    operation_description="Admin get all Bookings of specifide shop",
+    responses={200: ShopBookingAdminSerializer, 400: "bad request", 500: "errors"},
+       manual_parameters=[
+        openapi.Parameter(
+            name='shop_id',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            description='ID of the shop',
+            required=True
+        ),
+        
+    ]
+    
+    )
     def get(self,request):
         try:
             shop = request.GET.get('shop_id')
@@ -358,6 +543,8 @@ class BookingshopAdminView(APIView):
             return Response(serializer.errors)
         
 
+
+        
 
 
 

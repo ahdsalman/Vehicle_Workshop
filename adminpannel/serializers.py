@@ -10,6 +10,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ['phone', 'city', 'pincode']
+        ref_name = 'AdminPanelUserProfileSerializer'
 
 
 class UserProfileListSerializer(serializers.ModelSerializer):
@@ -26,7 +27,7 @@ class ServiceListAdminSerializer(serializers.ModelSerializer):
         model = Services
         fields = ['service_name','price']
 
-
+from adminpannel.models import Notifications
 
 class ShopDetailRetriveAdminSerializer(serializers.ModelSerializer):
     

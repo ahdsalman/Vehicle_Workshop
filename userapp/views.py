@@ -11,16 +11,22 @@ from userapp.auths.tokens import get_tokens_for_user
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
-from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import permission_classes
 from userapp.custompermission import OnlyUserPermission
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 # Create your views here.
 
 
 
 class UserRegisterCreateView(APIView):
-    serializer_class=UserRegisterSerializer
-    @extend_schema(responses=UserRegisterSerializer)
+    @swagger_auto_schema(
+    tags=["User Authentication"],
+    operation_description="User Registeration",
+    responses={200: UserRegisterSerializer, 400: "bad request", 500: "errors"},
+    request_body=UserRegisterSerializer,  
+    )
+    
     def post(self,request):
 
         serializer=UserRegisterSerializer(data=request.data)
@@ -40,8 +46,12 @@ class UserRegisterCreateView(APIView):
 
 
 class PhoneVarifyView(APIView):
-    serializer_class=PhoneSerializer
-    @extend_schema(responses=PhoneSerializer)
+    @swagger_auto_schema(
+    tags=["User otp generating"],
+    operation_description="User phone verify ",
+    responses={200: PhoneSerializer, 400: "bad request", 500: "errors"},
+    request_body=PhoneSerializer
+    )
     def post(self,request):
 
         if request.method == 'POST':
@@ -59,8 +69,12 @@ class PhoneVarifyView(APIView):
                     return Response({'msg':'cant send otp...!'},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-    serializer_class=PhoneSerializer
-    @extend_schema(responses=PhoneSerializer)
+        
+    @swagger_auto_schema(
+    tags=["User otp generating"],
+    operation_description="User Resend otp",
+    responses={200: PhoneSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self, request):
             
             previous_phone=request.session.get('phone')
@@ -79,8 +93,12 @@ class PhoneVarifyView(APIView):
 
 
 class OtpverificationView(APIView):
-    serializer_class=OtpSerializer
-    @extend_schema(responses=OtpSerializer)
+    @swagger_auto_schema(
+    tags=["User otp generating"],
+    operation_description="User otp verify",
+    responses={200: OtpSerializer, 400: "bad request", 500: "errors"},
+    request_body=OtpSerializer
+    )
     def post(self,request):
 
         serializer=OtpSerializer(data=request.data)
@@ -102,9 +120,15 @@ class OtpverificationView(APIView):
         
         return Response(serializer.errors)
 
+
+
 class UserLoginView(APIView):
-    serializer_class=UserLoginSerializer
-    @extend_schema(responses=UserLoginSerializer)
+    @swagger_auto_schema(
+    tags=["User Authentication"],
+    operation_description="User login",
+    responses={200: UserLoginSerializer, 400: "bad request", 500: "errors"},
+    request_body=UserLoginSerializer
+    )
     def post(self, request):
 
         serializer=UserLoginSerializer(data=request.data)
@@ -127,8 +151,12 @@ class UserLoginView(APIView):
 class ChangeUserPasswordView(APIView):
 
     permission_classes = [IsAuthenticated,OnlyUserPermission]
-    serializer_class=ChangePasswordSerializer
-    @extend_schema(responses=ChangePasswordSerializer)
+    @swagger_auto_schema(
+    tags=["User password Updations"],
+    operation_description="User change password",
+    responses={200: ChangePasswordSerializer, 400: "bad request", 500: "errors"},
+    request_body=ChangePasswordSerializer
+    )
     def patch(self, request):
         serializer=ChangePasswordSerializer(data=request.data)
         if serializer.is_valid():
@@ -151,8 +179,12 @@ class ChangeUserPasswordView(APIView):
 
 
 class ForgotPasswordView(APIView):
-    serializer_class=ForgotpasswordSerializer
-    @extend_schema(responses=ForgotpasswordSerializer)
+    @swagger_auto_schema(
+    tags=["User password Updations"],
+    operation_description="User forgot password",
+    responses={200: ForgotpasswordSerializer, 400: "bad request", 500: "errors"},
+    request_body=ForgotpasswordSerializer
+    )
     def patch(self, request):
         
         email=request.data.get('email')
@@ -174,8 +206,12 @@ class ForgotPasswordView(APIView):
     
     
 class GoogleSocialAuthUserView(APIView):
-    serializer_class=GoogleSocialAuthSerializer
-    @extend_schema(responses=GoogleSocialAuthSerializer)
+    @swagger_auto_schema(
+    tags=["User Authentication"],
+    operation_description="User SocialAuthentication",
+    responses={200: GoogleSocialAuthSerializer, 400: "bad request", 500: "errors"},
+    request_body=GoogleSocialAuthSerializer
+    )
     def post(self, request):
 
         serializer=GoogleSocialAuthSerializer(data=request.data)
@@ -187,8 +223,11 @@ class GoogleSocialAuthUserView(APIView):
 
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated,OnlyUserPermission]
-    serializer_class=UserProfileSerializer
-    @extend_schema(responses=UserProfileSerializer)
+    @swagger_auto_schema(
+    tags=["User Profile"],
+    operation_description="User Profile get",
+    responses={200: UserProfileSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self,request):
         try:
             user=User.objects.get(email=request.user.email)
@@ -197,8 +236,12 @@ class UserProfileView(APIView):
         except User.DoesNotExist:
             return Response({'User Not Found'},status=status.HTTP_404_NOT_FOUND)
     
-    serializer_class=UserProfileSerializer
-    @extend_schema(responses=UserProfileSerializer)
+    @swagger_auto_schema(
+    tags=["User Profile"],
+    operation_description="User Profile updation",
+    responses={200: UserProfileSerializer, 400: "bad request", 500: "errors"},
+    request_body=UserProfileSerializer
+    )
     def put(self, request):
         user = request.user
 
@@ -208,7 +251,11 @@ class UserProfileView(APIView):
             return Response(serializer.data,status=status.HTTP_200_OK)
         return Response(serializer.errors)
     
-    
+    @swagger_auto_schema(
+    tags=["User Profile"],
+    operation_description="User Profile delete",
+    responses={200: UserProfileSerializer, 400: "bad request", 500: "errors"},
+    )
     def delete(self,request):
         user = request.user
         user.delete()

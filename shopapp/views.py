@@ -15,14 +15,18 @@ from django.contrib.auth import authenticate
 from rest_framework.authentication import TokenAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
-from drf_spectacular.utils import extend_schema
 from userapp.custompermission import OnlyOwnerPermission
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 # Create your views here.
 
 class WorkshopOwnerCreateView(APIView):
-    serializer_class=ShopRegisterSerializer
-    @extend_schema(responses=ShopRegisterSerializer)
-
+    @swagger_auto_schema(
+    tags=["ShopAuthentication"],
+    operation_description="Shop Registeration",
+    responses={200: ShopRegisterSerializer, 400: "bad request", 500: "errors"},
+    request_body=ShopRegisterSerializer
+    )
     def post(self, request):
         serializer = ShopRegisterSerializer(data=request.data)
 
@@ -45,8 +49,12 @@ class WorkshopOwnerCreateView(APIView):
 
 
 class EmailVerifyView(APIView):
-    serializer_class=EmailVerifySerializer
-    @extend_schema(responses=EmailVerifySerializer)
+    @swagger_auto_schema(
+    tags=["ShopAuthentication"],
+    operation_description="Shop Email Verify",
+    responses={200: EmailVerifySerializer, 400: "bad request", 500: "errors"},
+    request_body=EmailVerifySerializer
+    )
     def post(self, request):
         serializer=EmailVerifySerializer(data=request.data)
         if serializer.is_valid():
@@ -75,15 +83,19 @@ class EmailVerifyView(APIView):
 
 
 class EmailOtpVerifyView(APIView):
-    serializer_class=OtpVerifySerializer
-    @extend_schema(responses=OtpVerifySerializer)
+    @swagger_auto_schema(
+    tags=["ShopAuthentication"],
+    operation_description="Shop Otp Verify",
+    responses={200: OtpVerifySerializer, 400: "bad request", 500: "errors"},
+    request_body=OtpVerifySerializer
+    )
     def post(self, request):
         serializer=OtpVerifySerializer(data=request.data)
         if serializer.is_valid():
-            email=request.session.get('email') #Access the email from the session
-            stored_otp = request.session.get('otp') #Access the OTP from the session
+            email=request.session.get('email') 
+            stored_otp = request.session.get('otp')
             
-            usr_otp =   request.data.get('entered_otp')   #Retrive the user provided OTP
+            usr_otp =   request.data.get('entered_otp')   
              
             if int(usr_otp) == int(stored_otp):
                 try:
@@ -103,8 +115,12 @@ class EmailOtpVerifyView(APIView):
    
     
 class GoogleSocialAuthOwnerView(APIView):
-    serializer_class=GoogleSocialAuthSerializer
-    @extend_schema(responses=GoogleSocialAuthSerializer)
+    @swagger_auto_schema(
+    tags=["ShopAuthentication"],
+    operation_description="Shop SocialAuthentication",
+    responses={200: GoogleSocialAuthSerializer, 400: "bad request", 500: "errors"},
+    request_body=GoogleSocialAuthSerializer
+    )
     def post(self, request):
 
         serializer=GoogleSocialAuthSerializer(data=request.data)
@@ -116,9 +132,11 @@ class GoogleSocialAuthOwnerView(APIView):
 
 class OwnerProfileView(APIView):
     permission_classes = [IsAuthenticated,OnlyOwnerPermission]
-    serializer_class = UserProfileSerializer
-
-    @extend_schema(responses=UserProfileSerializer)
+    @swagger_auto_schema(
+    tags=["ShopOwnerProfile"],
+    operation_description="Shop Owner Profile get",
+    responses={200: UserProfileSerializer, 400: "bad request", 500: "errors"},
+    )
     def get(self, request):
         try:
             shop_owner = User.objects.get(email=request.user.email)
@@ -128,8 +146,13 @@ class OwnerProfileView(APIView):
         except User.DoesNotExist:
             return Response({'User Not Found'}, status=status.HTTP_404_NOT_FOUND)
         
-    serializer_class = UserProfileSerializer
-    @extend_schema(responses=UserProfileSerializer)
+    
+    @swagger_auto_schema(
+    tags=["ShopOwnerProfile"],
+    operation_description="Shop Owner Profile update",
+    responses={200: UserProfileSerializer, 400: "bad request", 500: "errors"},
+    request_body=UserProfileSerializer
+    )
     def put(self, request):
         try:
             owner = request.user
@@ -143,7 +166,12 @@ class OwnerProfileView(APIView):
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except User.DoesNotExist:
             return Response({'User Not Found'}, status=status.HTTP_404_NOT_FOUND)
-            
+        
+    @swagger_auto_schema(
+    tags=["ShopOwnerProfile"],
+    operation_description="Shop Owner Profile Delete",
+    responses={200: UserProfileSerializer, 400: "bad request", 500: "errors"},
+    )
     def delete(self, request):
         owner=request.user
         owner.delete()
