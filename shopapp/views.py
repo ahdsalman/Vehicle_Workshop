@@ -63,7 +63,7 @@ class EmailVerifyView(APIView):
             try:
                 User.objects.get(email=email)
                 otp = math.floor(random.randint(100000, 999999))
-                expiration_time = datetime.now() + timedelta(minutes=5)
+                expiration_time = datetime.now() + timedelta(minutes=1)
                 request.session['email']=email
                 request.session['otp']={'value': otp, 'expiration_time': expiration_time.strftime('%Y-%m-%d %H:%M:%S')}
             
