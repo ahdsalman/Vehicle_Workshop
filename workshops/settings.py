@@ -110,10 +110,10 @@ CHANNEL_LAYERS = {
 DATABASES = {
     'default': {
         'ENGINE': "django.contrib.gis.db.backends.postgis",
-        'NAME': 'workshopsin',
-        'USER':'myshopweb',
+        'NAME': 'workshopin',
+        'USER':'postgres',
         'PASSWORD':os.getenv('Database_PASSWORD'),
-        'HOST':'workshopsin.c3guy4auy8fa.eu-north-1.rds.amazonaws.com',
+        'HOST':'localhost',
         'PORT':5434
     }
 }
