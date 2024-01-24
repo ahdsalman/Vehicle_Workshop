@@ -90,7 +90,7 @@ TEMPLATES = [
     },
 ]
 
-# WSGI_APPLICATION = 'workshops.wsgi.application'
+WSGI_APPLICATION = 'workshops.wsgi.application'
 
 ASGI_APPLICATION = 'workshops.asgi.application'
 
@@ -110,10 +110,10 @@ CHANNEL_LAYERS = {
 DATABASES = {
     'default': {
         'ENGINE': "django.contrib.gis.db.backends.postgis",
-        'NAME': 'workshopsin',
-        'USER':'myshopweb',
+        'NAME': 'workshopin',
+        'USER':'postgres',
         'PASSWORD':os.getenv('Database_PASSWORD'),
-        'HOST':'workshopsin.c3guy4auy8fa.eu-north-1.rds.amazonaws.com',
+        'HOST':'localhost',
         'PORT':5434
     }
 }
@@ -260,3 +260,14 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_OBTAIN_SERIALIZER": "rest_framework_simplejwt.serializers.TokenObtainSlidingSerializer",
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 }
+
+
+AWS_ACCESS_KEY_ID = 'AKIA5FTY7KDS4QZKTPGH'
+AWS_SECRET_ACCESS_KEY = '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'
+AWS_STORAGE_BUCKET_NAME = 'projectshop'
+AWS_S3_SIGNATURE_NAME = 's3v4',
+AWS_S3_REGION_NAME = 'ap-south-1'
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL =  None
+AWS_S3_VERITY = True
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
